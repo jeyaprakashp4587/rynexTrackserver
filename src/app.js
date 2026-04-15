@@ -1,0 +1,21 @@
+import cors from "cors";
+import express from "express";
+import authRoutes from "./routes/authRoutes.js";
+import bodyParser from "body-parser";
+
+const app = express();
+
+app.use(express.json());
+app.use(cors({ origin: "*", methods: ["GET", "POST", "PUT", "DELETE"] }));
+app.use(bodyParser.urlencoded({ extended: true }));
+
+app.get("/health", (req, res) => {
+  return res.status(200).json({
+    success: true,
+    message: "Rynex Track API is healthy",
+  });
+});
+
+app.use("/api/auth", authRoutes);
+
+export default app;
