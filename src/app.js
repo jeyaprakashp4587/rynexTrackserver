@@ -1,6 +1,10 @@
 import cors from "cors";
 import express from "express";
 import authRoutes from "./routes/authRoutes.js";
+import vehicleRoutes from "./routes/vehicleRoutes.js";
+import companyRoutes from "./routes/companyRoutes.js";
+import driverRoutes from "./routes/driverRoutes.js";
+import tripRoutes from "./routes/tripRoutes.js";
 import bodyParser from "body-parser";
 
 const app = express();
@@ -16,6 +20,11 @@ app.get("/health", (req, res) => {
   });
 });
 
+// api uses
 app.use("/api/auth", authRoutes);
+app.use("/api/vehicles", vehicleRoutes);
+app.use("/api/companies", companyRoutes);
+app.use("/api/drivers", driverRoutes);
+app.use("/api/trips", tripRoutes);
 
 export default app;

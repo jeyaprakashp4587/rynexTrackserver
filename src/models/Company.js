@@ -11,6 +11,12 @@ const companySchema = new mongoose.Schema(
       ref: "User",
       required: true,
     },
+    adress: {
+      type: String,
+    },
+    GSTNumber: {
+      type: String,
+    },
     role: {
       type: String,
       enum: ["company", "driver", "user"],

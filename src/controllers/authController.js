@@ -3,7 +3,7 @@ import jwt from "jsonwebtoken";
 import { User } from "../models/User.js";
 import { createAccessToken, createRefreshToken } from "../middlewares/JWT.js";
 
-export const register = async (req, res) => {
+export const registerCompany = async (req, res) => {
   try {
     const { MobileNumber, password, role } = req.body;
     const existingUser = await User.exists({
