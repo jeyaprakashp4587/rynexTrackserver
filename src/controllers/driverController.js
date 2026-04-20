@@ -2,6 +2,7 @@ import mongoose from "mongoose";
 import { Company } from "../models/Company.js";
 import { Driver } from "../models/Driver.js";
 
+// create driver for my company
 export const createDriver = async (req, res) => {
   try {
     const { name, MobileNumber, image } = req.body;
@@ -36,5 +37,17 @@ export const createDriver = async (req, res) => {
       success: false,
       message: "Failed to create driver",
     });
+  }
+};
+
+// get my company drivers
+export const getMyCompanyDrivers = async (req, res) => {
+  try {
+    const company = await Company.findOne({ owner: req.user._id }).populate(
+      "drivers",
+    );
+    res.status(200).json({ drivers: company.drivers });
+  } catch (error) {
+    res.status(500).json({ error: "Failed to fetch drivers" });
   }
 };

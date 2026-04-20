@@ -1,6 +1,6 @@
 import mongoose from "mongoose";
 
-const vehicleSchema = new mongoose.Schema({
+const tripSchema = new mongoose.Schema({
   startLocation: {
     type: {
       type: String,
@@ -22,6 +22,17 @@ const vehicleSchema = new mongoose.Schema({
       type: [Number],
       default: [0, 0],
     },
+  },
+  status: {
+    type: String,
+    enum: [
+      "completed",
+      "waiting for driver",
+      "unallocated",
+      "cancelled",
+      "started",
+    ],
+    default: "unallocated",
   },
   createdBy: {
     type: mongoose.Schema.Types.ObjectId,
@@ -45,4 +56,4 @@ const vehicleSchema = new mongoose.Schema({
   },
 });
 
-export const Vehicle = mongoose.model("Vehicle", vehicleSchema);
+export const Trip = mongoose.model("Trip", tripSchema);
