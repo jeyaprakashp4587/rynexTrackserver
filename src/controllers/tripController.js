@@ -25,7 +25,7 @@ export const createTrip = async (req, res) => {
     res.status(500).json({ error: "Failed to create trip" });
   }
 };
-// get trips for company jjbh vh
+// get trips for company jjbh vhbhv
 export const getMyCompanyTrips = async (req, res) => {
   try {
     const trips = await Trip.find({ createdBy: req.user._id })
