@@ -54,7 +54,7 @@ export const startTrip = async (req, res) => {
     res.status(500).json({ error: "Failed to start trip" });
   }
 };
-// get allocated trip for driver
+// get allocated trip for drivers
 export const getMyTrip = async (req, res) => {
   try {
     const trip = await Trip.findOne({ allocatedDriver: req.user._id });
