@@ -1,4 +1,5 @@
 import mongoose from "mongoose";
+import { DB1 } from "../config/db.js";
 
 const driverSchema = new mongoose.Schema(
   {
@@ -38,4 +39,4 @@ const driverSchema = new mongoose.Schema(
 );
 driverSchema.index({ currentLocation: "2dsphere" });
 
-export const Driver = mongoose.model("Driver", driverSchema);
+export const Driver = DB1.model("Driver", driverSchema);

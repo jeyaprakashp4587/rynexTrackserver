@@ -2,15 +2,15 @@ import { Company } from "../models/Company.js";
 
 export const createCompany = async (req, res) => {
   try {
-    const { companyName, ownerId, adress, GSTNumber } = req.body;
-    const newCompany = new Company({
+    const { companyName, address, GSTNumber } = req.body;
+    const ownerId = req.userId;
+    console.log(ownerId, companyName, address, GSTNumber);
+    const newCompany = await Company.create({
       companyName,
       owner: ownerId,
-      adress,
+      address,
       GSTNumber,
     });
-    await newCompany.save();
-    // Logic to create a company in the database
     res.status(201).json({ message: "Company created successfully" });
   } catch (error) {
     res.status(500).json({ error: "Failed to create company" });

@@ -1,4 +1,5 @@
 import mongoose from "mongoose";
+import { DB1 } from "../config/db.js";
 
 const vehicleSchema = new mongoose.Schema(
   {
@@ -26,4 +27,4 @@ const vehicleSchema = new mongoose.Schema(
   },
 );
 
-export const Vehicle = mongoose.model("Vehicle", vehicleSchema);
+export const Vehicle = DB1.model("Vehicle", vehicleSchema);

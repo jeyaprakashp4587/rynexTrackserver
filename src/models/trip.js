@@ -1,4 +1,5 @@
 import mongoose from "mongoose";
+import { DB1 } from "../config/db.js";
 
 const tripSchema = new mongoose.Schema({
   startLocation: {
@@ -56,4 +57,4 @@ const tripSchema = new mongoose.Schema({
   },
 });
 
-export const Trip = mongoose.model("Trip", tripSchema);
+export const Trip = DB1.model("Trip", tripSchema);

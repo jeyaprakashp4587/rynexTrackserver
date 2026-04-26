@@ -74,7 +74,7 @@ export const login = async (req, res) => {
     const accessToken = await createAccessToken(userData._id);
     const refreshToken = await createRefreshToken(userData._id);
 
-    res.json({
+    res.status(200).json({
       message: "login successful",
       user: userData,
       tokens: { accessToken, refreshToken },
