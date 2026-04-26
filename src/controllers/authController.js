@@ -2,18 +2,21 @@ import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
 import { User } from "../models/User.js";
 import { createAccessToken, createRefreshToken } from "../middlewares/JWT.js";
+import mongoose from "mongoose";
 
-export const registerCompany = async (req, res) => {
+export const register = async (req, res) => {
   try {
     const { MobileNumber, password, role } = req.body;
-    const existingUser = await User.exists({
-      MobileNumber: MobileNumber,
-    });
-    if (existingUser) {
-      return res
-        .status(400)
-        .json({ message: "Mobile number already registered" });
-    }
+    console.log(MobileNumber, password, role);
+
+    // const existingUser = await User.exists({
+    //   MobileNumber: MobileNumber,
+    // });
+    // if (existingUser) {
+    //   return res
+    //     .status(400)
+    //     .json({ message: "Mobile number already registered" });
+    // }
     const salt = await bcrypt.genSalt(10);
     const hashedPassword = await bcrypt.hash(password, salt);
     const newUser = await User.create({

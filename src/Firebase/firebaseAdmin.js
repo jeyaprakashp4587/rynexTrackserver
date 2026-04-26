@@ -27,14 +27,11 @@ const getFirebaseConfig = () => {
 const initializeFirebaseAdmin = () => {
   if (!admin.apps.length) {
     const serviceAccount = getFirebaseConfig();
-
     admin.initializeApp({
       credential: admin.credential.cert(serviceAccount),
     });
-
     console.log("Firebase Admin SDK initialized");
   }
-
   return admin;
 };
 
