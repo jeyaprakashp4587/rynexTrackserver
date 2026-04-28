@@ -32,6 +32,7 @@ export const register = async (req, res) => {
       user: {
         id: newUser._id,
         MobileNumber: newUser.MobileNumber,
+        role: newUser.role,
         tokens: { accessToken, refreshToken },
       },
     });
@@ -61,7 +62,7 @@ export const login = async (req, res) => {
 
     const isPasswordCorrect = await bcrypt.compare(
       password,
-      findMobileUser.password,
+      findMobileUser.password
     );
 
     if (!isPasswordCorrect) {
@@ -93,7 +94,7 @@ export const refresh = async (req, res) => {
     // Verify the refresh token
     const decoded = jwt.verify(
       refreshToken,
-      process.env.JWT_REFRESH_TOKEN_SECRET,
+      process.env.JWT_REFRESH_TOKEN_SECRET
     );
     // Create a new access token (await the async function)
     const newAccessToken = await createAccessToken(decoded.userId);
@@ -109,7 +110,9 @@ export const refresh = async (req, res) => {
 
 // get User
 export const getMe = async (req, res) => {
-  const { userId } = req.params;
+  const userId = req.userId;
+  console.log("userid", userId);
+
   try {
     const userData = await User.findById(userId, { password: 0 });
     if (userData) {

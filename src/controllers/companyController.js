@@ -4,7 +4,8 @@ export const createCompany = async (req, res) => {
   try {
     const { companyName, address, GSTNumber } = req.body;
     const ownerId = req.userId;
-    console.log(ownerId, companyName, address, GSTNumber);
+    console.log("owner", ownerId, companyName, address, GSTNumber);
+
     const newCompany = await Company.create({
       companyName,
       owner: ownerId,
