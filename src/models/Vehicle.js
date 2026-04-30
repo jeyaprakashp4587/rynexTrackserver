@@ -15,16 +15,14 @@ const vehicleSchema = new mongoose.Schema(
     vehicleModel: {
       type: String,
     },
-    drivers: [
-      {
-        type: mongoose.Schema.Types.ObjectId,
-        ref: "Driver",
-      },
-    ],
+    currentDriver: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Driver",
+    },
   },
   {
     timestamps: true,
-  },
+  }
 );
 
 export const Vehicle = DB1.model("Vehicle", vehicleSchema);

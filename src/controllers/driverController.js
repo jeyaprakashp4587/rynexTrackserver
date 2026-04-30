@@ -43,8 +43,10 @@ export const createDriver = async (req, res) => {
 // get my company drivers
 export const getMyCompanyDrivers = async (req, res) => {
   try {
-    const company = await Company.findOne({ owner: req.user._id }).populate(
+    const userId = req.userId;
+    const company = await Company.findOne({ owner: userId }).populate(
       "drivers",
+      { name: 1, MobileNumber: 1, image: 1 }
     );
     res.status(200).json({ drivers: company.drivers });
   } catch (error) {

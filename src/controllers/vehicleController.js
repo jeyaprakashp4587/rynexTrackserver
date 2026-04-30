@@ -20,9 +20,10 @@ export const createCompanyVehicle = async (req, res) => {
     res.status(500).json({ error: "Failed to create vehicle" });
   }
 };
+// this creation for create user non company driver create vehicle of own self
 export const createDriverVehicle = async (req, res) => {
   try {
-    const userId = req.user._id;
+    const userId = req.userId;
     const { vehicleNumber, vehicleImage, vehicleModel } = req.body;
     const newVehicle = new Vehicle({
       vehicleNumber,
@@ -31,7 +32,7 @@ export const createDriverVehicle = async (req, res) => {
     });
     await newVehicle.save();
     await Vehicle.findByIdAndUpdate(newVehicle._id, {
-      $push: { drivers: userId },
+      currentDriver: userId,
     });
     // Logic to create a vehicle in the database
     res.status(201).json({ message: "Vehicle created successfully" });
@@ -42,8 +43,10 @@ export const createDriverVehicle = async (req, res) => {
 // get my company vehicles
 export const getMyCompanyVehicles = async (req, res) => {
   try {
-    const company = await Company.findOne({ owner: req.user._id }).populate(
+    const userId = req.userId;
+    const company = await Company.findOne({ owner: userId }).populate(
       "vehicles",
+      { vehicleNumber: 1, vehicleImage: 1, vehicleModel: 1 }
     );
     res.status(200).json({ vehicles: company.vehicles });
   } catch (error) {
@@ -53,7 +56,8 @@ export const getMyCompanyVehicles = async (req, res) => {
 // get my vehicle for driver
 export const getMyVehicles = async (req, res) => {
   try {
-    const vehicles = await Vehicle.find({ drivers: req.user._id });
+    const userId = req.userId;
+    const vehicles = await Vehicle.find({ currentDriver: userId });
     res.status(200).json({ vehicles });
   } catch (error) {
     res.status(500).json({ error: "Failed to fetch vehicles" });

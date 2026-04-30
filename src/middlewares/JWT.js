@@ -9,8 +9,8 @@ export const createAccessToken = async (id) => {
     { userId: id },
     process.env.JWT_ACCESS_TOKEN_SECRET,
     {
-      expiresIn: "1h",
-    },
+      expiresIn: "7d",
+    }
   );
   return accesstoken;
 };
@@ -20,7 +20,7 @@ export const createRefreshToken = async (id) => {
   const refreshToken = jwt.sign(
     { userId: id },
     process.env.JWT_REFRESH_TOKEN_SECRET,
-    { expiresIn: "7d" },
+    { expiresIn: "7d" }
   );
   return refreshToken;
 };

@@ -33,8 +33,8 @@ export const register = async (req, res) => {
         id: newUser._id,
         MobileNumber: newUser.MobileNumber,
         role: newUser.role,
-        tokens: { accessToken, refreshToken },
       },
+      tokens: { accessToken, refreshToken },
     });
   } catch (err) {
     console.error(err);
@@ -44,6 +44,8 @@ export const register = async (req, res) => {
 // login
 export const login = async (req, res) => {
   const { MobileNumber, password } = req.body;
+  console.log("trigger", MobileNumber, password);
+
   try {
     // return;
     if (!MobileNumber || !password) {
@@ -53,8 +55,11 @@ export const login = async (req, res) => {
     }
 
     const findMobileUser = await User.findOne({ MobileNumber });
+    console.log("find user", findMobileUser);
 
     if (!findMobileUser) {
+      console.log("triffet");
+
       return res
         .status(400)
         .json({ error: "Mobile number or Password is incorrect." });
@@ -74,6 +79,7 @@ export const login = async (req, res) => {
     delete userData.password;
     const accessToken = await createAccessToken(userData._id);
     const refreshToken = await createRefreshToken(userData._id);
+    console.log("user", userData);
 
     res.status(200).json({
       message: "login successful",
@@ -110,7 +116,7 @@ export const refresh = async (req, res) => {
 
 // get User
 export const getMe = async (req, res) => {
-  const userId = req.userId;
+  const userId = req.params.id;
   console.log("userid", userId);
 
   try {
