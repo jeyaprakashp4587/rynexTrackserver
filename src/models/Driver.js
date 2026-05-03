@@ -17,14 +17,20 @@ const driverSchema = new mongoose.Schema(
     image: {
       type: String,
     },
-    password: {
-      type: String,
-      required: true,
-    },
+    // password: {
+    //   type: String,
+    //   required: true,
+    // },
     currentlyAvailable: {
       type: Boolean,
       default: true,
     },
+    vehicles: [
+      {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: "Vehicle",
+      },
+    ],
     currentLocation: {
       type: {
         type: String,

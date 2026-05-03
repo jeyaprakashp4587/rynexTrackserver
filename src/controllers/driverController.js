@@ -7,7 +7,6 @@ export const createDriver = async (req, res) => {
   try {
     const { name, MobileNumber, image, coordinates } = req.body;
     const { companyId } = req.params;
-
     if (!name || !MobileNumber) {
       return res.status(400).json({
         success: false,
@@ -18,7 +17,7 @@ export const createDriver = async (req, res) => {
     const newDriver = await Driver.create({
       name,
       MobileNumber,
-      image,
+      // image,
       currentLocation: {
         type: "Point",
         coordinates: coordinates || [0, 0],
@@ -44,7 +43,39 @@ export const createDriver = async (req, res) => {
     });
   }
 };
+// create driver onboarding self register
+export const onBoardingDriver = async (req, res) => {
+  try {
+    const { name, MobileNumber, image, coordinates } = req.body;
+    if (!name || !MobileNumber) {
+      return res.status(400).json({
+        success: false,
+        message: "Name and MobileNumber are required",
+      });
+    }
 
+    await Driver.create({
+      name,
+      MobileNumber,
+      // image,
+      currentLocation: {
+        type: "Point",
+        coordinates: coordinates || [0, 0],
+      },
+    });
+    res.status(201).json({
+      success: true,
+      // message: "Driver created successfully",
+      // driver: newDriver,
+    });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({
+      success: false,
+      message: "Failed to create driver",
+    });
+  }
+};
 // get my company drivers
 export const getMyCompanyDrivers = async (req, res) => {
   try {

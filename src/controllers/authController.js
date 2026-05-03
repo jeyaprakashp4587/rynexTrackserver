@@ -9,14 +9,14 @@ export const register = async (req, res) => {
     const { MobileNumber, password, role } = req.body;
     console.log(MobileNumber, password, role);
 
-    // const existingUser = await User.exists({
-    //   MobileNumber: MobileNumber,
-    // });
-    // if (existingUser) {
-    //   return res
-    //     .status(400)
-    //     .json({ message: "Mobile number already registered" });
-    // }
+    const existingUser = await User.exists({
+      MobileNumber: MobileNumber,
+    });
+    if (existingUser) {
+      return res
+        .status(400)
+        .json({ message: "Mobile number already registered" });
+    }
     const salt = await bcrypt.genSalt(10);
     const hashedPassword = await bcrypt.hash(password, salt);
     const newUser = await User.create({
@@ -24,8 +24,8 @@ export const register = async (req, res) => {
       password: hashedPassword,
       role: role || "user",
     });
-    const accessToken = await createAccessToken(newUser._id);
-    const refreshToken = await createRefreshToken(newUser._id);
+    const accessToken = await createAccessToken(newUser);
+    const refreshToken = await createRefreshToken(newUser);
 
     res.status(201).json({
       message: "Register succesfully",
