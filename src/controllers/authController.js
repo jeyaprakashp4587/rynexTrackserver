@@ -77,8 +77,8 @@ export const login = async (req, res) => {
     }
     const userData = findMobileUser.toObject();
     delete userData.password;
-    const accessToken = await createAccessToken(userData._id);
-    const refreshToken = await createRefreshToken(userData._id);
+    const accessToken = await createAccessToken(userData);
+    const refreshToken = await createRefreshToken(userData);
     console.log("user", userData);
 
     res.status(200).json({
@@ -102,8 +102,11 @@ export const refresh = async (req, res) => {
       refreshToken,
       process.env.JWT_REFRESH_TOKEN_SECRET
     );
-    // Create a new access token (await the async function)
-    const newAccessToken = await createAccessToken(decoded.userId);
+    const user = await User.findById(decoded.userId);
+    if (!user) {
+      return res.status(404).json({ msg: "User not found" });
+    }
+    const newAccessToken = await createAccessToken(user);
     res.json({ accessToken: newAccessToken });
   } catch (err) {
     if (err.name === "JsonWebTokenError" || err.name === "TokenExpiredError") {
@@ -116,14 +119,15 @@ export const refresh = async (req, res) => {
 
 // get User
 export const getMe = async (req, res) => {
-  const userId = req.params.id;
+  const userId = req.userId;
   console.log("userid", userId);
 
   try {
     const userData = await User.findById(userId, { password: 0 });
     if (userData) {
-      const accessToken = await createAccessToken(userData._id);
-      const refreshToken = await createRefreshToken(userData._id);
+      const accessToken = await createAccessToken(userData);
+      const refreshToken = await createRefreshToken(userData);
+      console.log("User data:", userData);
       res
         .status(200)
         .json({ user: userData, tokens: { accessToken, refreshToken } });

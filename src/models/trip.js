@@ -24,6 +24,8 @@ const tripSchema = new mongoose.Schema({
       default: [0, 0],
     },
   },
+  // waiting for driver, unallocated , for user view status.
+  // stated, completed, stain for owner view status.
   status: {
     type: String,
     enum: [

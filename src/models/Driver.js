@@ -21,6 +21,10 @@ const driverSchema = new mongoose.Schema(
       type: String,
       required: true,
     },
+    currentlyAvailable: {
+      type: Boolean,
+      default: true,
+    },
     currentLocation: {
       type: {
         type: String,
@@ -35,7 +39,7 @@ const driverSchema = new mongoose.Schema(
   },
   {
     timestamps: true,
-  },
+  }
 );
 driverSchema.index({ currentLocation: "2dsphere" });
 

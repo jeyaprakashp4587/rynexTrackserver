@@ -5,13 +5,13 @@ import { Driver } from "../models/Driver.js";
 // create driver for my company
 export const createDriver = async (req, res) => {
   try {
-    const { name, MobileNumber, image } = req.body;
+    const { name, MobileNumber, image, coordinates } = req.body;
     const { companyId } = req.params;
 
     if (!name || !MobileNumber) {
       return res.status(400).json({
         success: false,
-        message: "Name, MobileNumber and password are required",
+        message: "Name and MobileNumber are required",
       });
     }
 
@@ -19,11 +19,17 @@ export const createDriver = async (req, res) => {
       name,
       MobileNumber,
       image,
+      currentLocation: {
+        type: "Point",
+        coordinates: coordinates || [0, 0],
+      },
     });
 
-    await Company.findByIdAndUpdate(companyId, {
-      $push: { drivers: newDriver._id },
-    });
+    if (companyId) {
+      await Company.findByIdAndUpdate(companyId, {
+        $push: { drivers: newDriver._id },
+      });
+    }
 
     res.status(201).json({
       success: true,
@@ -32,7 +38,6 @@ export const createDriver = async (req, res) => {
     });
   } catch (error) {
     console.error(error);
-
     res.status(500).json({
       success: false,
       message: "Failed to create driver",

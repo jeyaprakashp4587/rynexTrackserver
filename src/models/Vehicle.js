@@ -15,6 +15,10 @@ const vehicleSchema = new mongoose.Schema(
     vehicleModel: {
       type: String,
     },
+    currentlyAvailable: {
+      type: Boolean,
+      default: true,
+    },
     currentDriver: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "Driver",
