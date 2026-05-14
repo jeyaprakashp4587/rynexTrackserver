@@ -1,5 +1,6 @@
 import { Company } from "../models/Company.js";
 import { Vehicle } from "../models/Vehicle.js";
+import { Driver } from "../models/Driver.js";
 
 export const createCompanyVehicle = async (req, res) => {
   try {
@@ -31,6 +32,9 @@ export const createDriverVehicle = async (req, res) => {
       vehicleModel,
     });
     await newVehicle.save();
+    await Driver.findByIdAndUpdate(userId, {
+      $push: { vehicles: newVehicle._id },
+    });
     await Vehicle.findByIdAndUpdate(newVehicle._id, {
       currentDriver: userId,
     });
