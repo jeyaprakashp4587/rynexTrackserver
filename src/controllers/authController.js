@@ -6,8 +6,8 @@ import mongoose from "mongoose";
 
 export const register = async (req, res) => {
   try {
-    const { MobileNumber, password, role } = req.body;
-    console.log(MobileNumber, password, role);
+    const { MobileNumber, password, role, Name } = req.body;
+    console.log(MobileNumber, password, role, Name);
 
     const existingUser = await User.exists({
       MobileNumber: MobileNumber,
@@ -23,6 +23,7 @@ export const register = async (req, res) => {
       MobileNumber: MobileNumber,
       password: hashedPassword,
       role: role || "user",
+      Name: Name,
     });
     const accessToken = await createAccessToken(newUser);
     const refreshToken = await createRefreshToken(newUser);

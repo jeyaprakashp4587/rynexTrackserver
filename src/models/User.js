@@ -3,6 +3,9 @@ import { DB1 } from "../config/db.js";
 
 const userSchema = new mongoose.Schema(
   {
+    Name: {
+      type: "String",
+    },
     MobileNumber: {
       type: String,
       required: true,
@@ -21,7 +24,7 @@ const userSchema = new mongoose.Schema(
   },
   {
     timestamps: true,
-  },
+  }
 );
 
 export const User = DB1.model("user", userSchema);
