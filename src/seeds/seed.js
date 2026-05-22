@@ -1,6 +1,5 @@
 import mongoose from "mongoose";
 import { DB1 } from "../config/db.js";
-
 import { User } from "../models/User.js";
 import { Company } from "../models/Company.js";
 import { Driver } from "../models/Driver.js";
@@ -8,12 +7,18 @@ import { Vehicle } from "../models/Vehicle.js";
 
 const seed = async () => {
   try {
-    await mongoose.connection.dropDatabase();
+    // 🔥 STEP 1: WAIT FOR CONNECTION
+    await DB1;
+
+    console.log("✅ DB connected");
+
+    // // 🔥 STEP 2: NOW SAFE TO DROP
+    // await DB1.connection.dropDatabase();
 
     console.log("🔥 DB cleared");
 
     // =========================
-    // 👤 USERS
+    // USERS
     // =========================
     const ownerUser = await User.create({
       Name: "Arun CEO",
@@ -29,10 +34,8 @@ const seed = async () => {
       password: "123456",
     });
 
-    console.log("👤 Users created");
-
     // =========================
-    // 🏢 COMPANY
+    // COMPANY
     // =========================
     const company = await Company.create({
       companyName: "Chennai Fast Logistics",
@@ -41,10 +44,8 @@ const seed = async () => {
       GSTNumber: "GST12345",
     });
 
-    console.log("🏢 Company created");
-
     // =========================
-    // 👨 DRIVERS
+    // DRIVERS
     // =========================
     const independentDriver = await Driver.create({
       name: "Kumar Independent",
@@ -64,10 +65,8 @@ const seed = async () => {
       isIndependentDriver: false,
     });
 
-    console.log("👨 Drivers created");
-
     // =========================
-    // 🚗 VEHICLES (Chennai coords)
+    // VEHICLES (CHENNAI COORDS)
     // =========================
     const vehicle1 = await Vehicle.create({
       vehicleNumber: "TN01AB1111",
@@ -77,7 +76,7 @@ const seed = async () => {
       currentDriver: independentDriver._id,
       currentLocation: {
         type: "Point",
-        coordinates: [80.2707, 13.0827], // Chennai Central
+        coordinates: [80.2707, 13.0827],
       },
     });
 
@@ -90,7 +89,7 @@ const seed = async () => {
       companyId: company._id,
       currentLocation: {
         type: "Point",
-        coordinates: [80.2496, 13.0604], // Guindy
+        coordinates: [80.2496, 13.0604],
       },
     });
 
@@ -103,14 +102,12 @@ const seed = async () => {
       companyId: company._id,
       currentLocation: {
         type: "Point",
-        coordinates: [80.2206, 13.0049], // T Nagar
+        coordinates: [80.2206, 13.0049],
       },
     });
 
-    console.log("🚗 Vehicles created");
-
     // =========================
-    // LINK VEHICLES ↔ DRIVERS
+    // LINKING
     // =========================
     await Driver.findByIdAndUpdate(independentDriver._id, {
       vehicles: [vehicle1._id],
@@ -124,10 +121,8 @@ const seed = async () => {
       vehicles: [vehicle3._id],
     });
 
-    console.log("🔗 Relationships linked");
-
-    console.log("✅ SEED COMPLETED SUCCESSFULLY");
-    process.exit();
+    console.log("✅ SEED DONE");
+    process.exit(0);
   } catch (err) {
     console.error("❌ Seed error:", err);
     process.exit(1);

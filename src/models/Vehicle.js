@@ -48,5 +48,5 @@ const vehicleSchema = new mongoose.Schema(
     timestamps: true,
   }
 );
-
+vehicleSchema.index({ currentLocation: "2dsphere" });
 export const Vehicle = DB1.model("Vehicle", vehicleSchema);

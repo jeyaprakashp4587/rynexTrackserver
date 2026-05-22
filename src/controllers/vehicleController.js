@@ -1,7 +1,7 @@
 import { Company } from "../models/Company.js";
 import { Vehicle } from "../models/Vehicle.js";
 import { Driver } from "../models/Driver.js";
-import { toMeters } from "../helpers/radiusHelper.js";
+import { toMeters, toKm } from "../helpers/radiusHelper.js";
 
 export const createCompanyVehicle = async (req, res) => {
   try {
@@ -71,7 +71,8 @@ export const getMyVehicles = async (req, res) => {
 
 export const findNearbyVehicles = async (req, res) => {
   try {
-    const { lat, lng, radiusKm } = req.body;
+    const { lat, lng, radiusKm } = req.query;
+    console.log(lat, lng, radiusKm);
 
     const maxDistance = toMeters(radiusKm);
 

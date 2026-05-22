@@ -7,6 +7,6 @@ import {
 const router = express.Router();
 
 router.post("/createVehicle/:companyId", createCompanyVehicle);
-router.get("/findNearbyVehicles", findNearbyVehicles);
+router.get("/findNearbyVehicles/", findNearbyVehicles);
 
 export default router;
