@@ -18,11 +18,6 @@ const companySchema = new mongoose.Schema(
     GSTNumber: {
       type: String,
     },
-    role: {
-      type: String,
-      enum: ["company", "driver", "user"],
-      default: "user",
-    },
     vehicles: [
       {
         type: mongoose.Schema.Types.ObjectId,
@@ -38,7 +33,7 @@ const companySchema = new mongoose.Schema(
   },
   {
     timestamps: true,
-  },
+  }
 );
 
 export const Company = DB1.model("Company", companySchema);

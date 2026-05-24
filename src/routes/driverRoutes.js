@@ -6,7 +6,7 @@ import {
 
 const router = express.Router();
 
-router.post("/createDriver/:companyId", createDriver);
+router.post("/createDriver", createDriver);
 router.post("/onBoardingDriver", onBoardingDriver);
 
 export default router;

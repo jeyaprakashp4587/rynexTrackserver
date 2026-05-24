@@ -82,7 +82,7 @@ export const login = async (req, res) => {
     const refreshToken = await createRefreshToken(userData);
     console.log("user", userData);
 
-    res.status(200).json({
+    return res.status(200).json({
       message: "login successful",
       user: userData,
       tokens: { accessToken, refreshToken },
@@ -133,9 +133,9 @@ export const getMe = async (req, res) => {
         .status(200)
         .json({ user: userData, tokens: { accessToken, refreshToken } });
     } else {
-      res.status(404).json({ message: "user not found" });
+      return res.status(404).json({ message: "user not found" });
     }
   } catch (error) {
-    res.status(500).json({ error: error.message });
+    return res.status(500).json({ error: error.message });
   }
 };

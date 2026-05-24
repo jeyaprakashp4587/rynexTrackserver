@@ -71,8 +71,8 @@ export const getMyVehicles = async (req, res) => {
 
 export const findNearbyVehicles = async (req, res) => {
   try {
-    const { lat, lng, radiusKm } = req.query;
-    console.log(lat, lng, radiusKm);
+    const { lat, lon, radiusKm = 10 } = req.query;
+    console.log(lat, lon, radiusKm);
 
     const maxDistance = toMeters(radiusKm);
 
@@ -82,7 +82,7 @@ export const findNearbyVehicles = async (req, res) => {
         $geoNear: {
           near: {
             type: "Point",
-            coordinates: [Number(lng), Number(lat)],
+            coordinates: [Number(lon), Number(lat)],
           },
           distanceField: "distance",
           maxDistance: maxDistance,

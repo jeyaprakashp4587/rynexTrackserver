@@ -2,15 +2,15 @@ import { Company } from "../models/Company.js";
 
 export const createCompany = async (req, res) => {
   try {
-    const { companyName, address, GSTNumber } = req.body;
+    const { companyName, address, GstNumber } = req.body;
     const ownerId = req.userId;
-    console.log("owner", ownerId, companyName, address, GSTNumber);
+    console.log("owner", ownerId, companyName, address, GstNumber);
 
     const newCompany = await Company.create({
       companyName,
       owner: ownerId,
       address,
-      GSTNumber,
+      GSTNumber: GstNumber,
     });
     res.status(201).json({ message: "Company created successfully" });
   } catch (error) {
@@ -21,7 +21,10 @@ export const createCompany = async (req, res) => {
 export const getMyCompany = async (req, res) => {
   try {
     const ownerId = req.userId;
-    const company = await Company.findOne({ owner: ownerId });
+    const company = await Company.findOne(
+      { owner: ownerId },
+      { drivers: 0, vehicles: 0 }
+    );
     if (!company) {
       return res.status(404).json({ message: "Company not found" });
     }

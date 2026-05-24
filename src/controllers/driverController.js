@@ -5,8 +5,11 @@ import { Driver } from "../models/Driver.js";
 // create driver for my company
 export const createDriver = async (req, res) => {
   try {
-    const { name, MobileNumber, image, coordinates } = req.body;
-    const { companyId } = req.params;
+    const { companyId, driverForm } = req.body;
+    const { name, MobileNumber, image, vehicleId } = driverForm;
+
+    console.log(name, MobileNumber, image, vehicleId, companyId);
+
     if (!name || !MobileNumber) {
       return res.status(400).json({
         success: false,
@@ -14,14 +17,11 @@ export const createDriver = async (req, res) => {
       });
     }
 
+    // return;
     const newDriver = await Driver.create({
       name,
       MobileNumber,
-      // image,
-      currentLocation: {
-        type: "Point",
-        coordinates: coordinates || [0, 0],
-      },
+      image,
     });
 
     if (companyId) {
@@ -29,15 +29,16 @@ export const createDriver = async (req, res) => {
         $push: { drivers: newDriver._id },
       });
     }
+    console.log("driver created");
 
-    res.status(201).json({
+    return res.status(201).json({
       success: true,
       message: "Driver created successfully",
       driver: newDriver,
     });
   } catch (error) {
     console.error(error);
-    res.status(500).json({
+    return res.status(500).json({
       success: false,
       message: "Failed to create driver",
     });
