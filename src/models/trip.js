@@ -34,8 +34,9 @@ const tripSchema = new mongoose.Schema({
       "unallocated",
       "cancelled",
       "started",
+      "accepted",
     ],
-    default: "unallocated",
+    default: "waiting for driver",
   },
   createdBy: {
     type: mongoose.Schema.Types.ObjectId,
