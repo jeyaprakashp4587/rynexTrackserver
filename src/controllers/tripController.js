@@ -1,21 +1,28 @@
 import { Trip } from "../models/trip";
-
+// create trip
 export const createTrip = async (req, res) => {
   try {
-    const { driverId, vehicleId, startLocation, endLocation } = req.body;
+    const {
+      driverId,
+      vehicleId,
+      pickupCoords: startLocation,
+      dropCoords: endLocation,
+      pickupText,
+      dropText,
+    } = req.body;
     const newTrip = new Trip({
       createdBy: req.user._id,
       allocatedDriver: driverId,
       allocatedVehicle: vehicleId,
-      startLocation: {
+      pickupCoords: {
         type: "Point",
-        coordinates: [startLocation.longitude, startLocation.latitude],
+        coordinates: [startLocation.lon, startLocation.lat],
       },
-      endLocation: {
+      dropCoords: {
         type: "Point",
-        coordinates: [endLocation.longitude, endLocation.latitude],
+        coordinates: [endLocation.lon, endLocation.lat],
       },
-      status: "in-transit",
+      // status: "in-transit",
     });
     await newTrip.save();
     res

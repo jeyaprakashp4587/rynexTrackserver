@@ -23,11 +23,6 @@ const vehicleSchema = new mongoose.Schema(
       type: mongoose.Schema.Types.ObjectId,
       ref: "Driver",
     },
-
-    currentDriver: {
-      type: mongoose.Schema.Types.ObjectId,
-      ref: "Driver",
-    },
     currentLocation: {
       type: {
         type: String,

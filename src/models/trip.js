@@ -2,7 +2,7 @@ import mongoose from "mongoose";
 import { DB1 } from "../config/db.js";
 
 const tripSchema = new mongoose.Schema({
-  startLocation: {
+  startCoords: {
     type: {
       type: String,
       enum: ["Point"],
@@ -13,7 +13,7 @@ const tripSchema = new mongoose.Schema({
       default: [0, 0],
     },
   },
-  endLocation: {
+  dropCoords: {
     type: {
       type: String,
       enum: ["Point"],
@@ -59,5 +59,9 @@ const tripSchema = new mongoose.Schema({
     type: String,
   },
 });
-
+tripSchema.index({ startLocation: "2dsphere", endLocation: "2dsphere" });
+tripSchema.index({ createdAt: 1 });
+tripSchema.index({ allocatedDriver: 1 });
+tripSchema.index({ allocatedVehicle: 1 });
+tripSchema.index({ createdBy: 1 });
 export const Trip = DB1.model("Trip", tripSchema);

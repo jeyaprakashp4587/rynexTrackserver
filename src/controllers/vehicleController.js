@@ -5,16 +5,24 @@ import { toMeters, toKm } from "../helpers/radiusHelper.js";
 
 export const createCompanyVehicle = async (req, res) => {
   try {
-    const { vehicleNumber, vehicleImage, vehicleModel, companyId } = req.body;
+    const { vehicleNumber, vehicleImage, vehicleModel } = req.body;
+    const userId = req.userId;
+    console.log("Creating vehicle for company:", userId);
+
     const newVehicle = new Vehicle({
       vehicleNumber,
-      vehicleImage,
+      // vehicleImage,
       vehicleModel,
     });
     await newVehicle.save();
-    await Company.findByIdAndUpdate(companyId, {
-      $push: { vehicles: newVehicle._id },
-    });
+    await Company.findOneAndUpdate(
+      { owner: userId },
+      {
+        $push: { vehicles: newVehicle._id },
+      },
+      { new: true }
+    );
+
     // Logic to create a vehicle in the database
     res
       .status(201)
@@ -50,7 +58,7 @@ export const createDriverVehicle = async (req, res) => {
 export const getMyCompanyVehicles = async (req, res) => {
   try {
     const userId = req.userId;
-    // console.log("userId:", userId);
+    console.log("userId:", userId);
 
     const company = await Company.findOne({ owner: userId }).populate(
       "vehicles",
