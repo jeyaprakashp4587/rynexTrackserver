@@ -1,6 +1,6 @@
 import { Router } from "express";
-import { verifyToken } from "../middlewares/JWT";
-import { createTrip } from "../controllers/tripController";
+import { verifyToken } from "../middlewares/JWT.js";
+import { createTrip } from "../controllers/tripController.js";
 
 const router = Router();
 

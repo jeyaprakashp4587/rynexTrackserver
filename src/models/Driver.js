@@ -11,7 +11,10 @@ const driverSchema = new mongoose.Schema({
     type: Boolean,
     default: true,
   },
-
+  companyId: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: "Company",
+  },
   vehicles: [
     {
       type: mongoose.Schema.Types.ObjectId,

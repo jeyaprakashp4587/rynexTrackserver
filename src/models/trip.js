@@ -2,7 +2,12 @@ import mongoose from "mongoose";
 import { DB1 } from "../config/db.js";
 
 const tripSchema = new mongoose.Schema({
-  startCoords: {
+  tripRequestId: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: "TripRequest",
+    required: true,
+  },
+  pickupCoords: {
     type: {
       type: String,
       enum: ["Point"],
@@ -24,19 +29,24 @@ const tripSchema = new mongoose.Schema({
       default: [0, 0],
     },
   },
-  // waiting for driver, unallocated , for user view status.
-  // stated, completed, stain for owner view status.
+  pickupLocation: {
+    type: String,
+    default: "Unknown",
+  },
+  dropLocation: {
+    type: String,
+    default: "Unknown",
+  },
   status: {
     type: String,
     enum: [
-      "completed",
-      "waiting for driver",
-      "unallocated",
-      "cancelled",
-      "started",
-      "accepted",
+      "Completed",
+      "Waiting for driver",
+      "Cancelled",
+      "Started",
+      "Accepted",
     ],
-    default: "waiting for driver",
+    default: "Waiting for driver",
   },
   createdBy: {
     type: mongoose.Schema.Types.ObjectId,
@@ -59,7 +69,8 @@ const tripSchema = new mongoose.Schema({
     type: String,
   },
 });
-tripSchema.index({ startLocation: "2dsphere", endLocation: "2dsphere" });
+
+tripSchema.index({ pickupCoords: "2dsphere", dropCoords: "2dsphere" });
 tripSchema.index({ createdAt: 1 });
 tripSchema.index({ allocatedDriver: 1 });
 tripSchema.index({ allocatedVehicle: 1 });

@@ -22,6 +22,7 @@ export const createDriver = async (req, res) => {
       name,
       MobileNumber,
       image,
+      companyId,
     });
 
     if (companyId) {

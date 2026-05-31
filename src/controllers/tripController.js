@@ -1,5 +1,6 @@
-import { Trip } from "../models/trip";
-// create trip
+import { Trip } from "../models/trip.js";
+
+// create owner trip
 export const createTrip = async (req, res) => {
   try {
     const {
@@ -10,10 +11,13 @@ export const createTrip = async (req, res) => {
       pickupText,
       dropText,
     } = req.body;
+
     const newTrip = new Trip({
       createdBy: req.user._id,
       allocatedDriver: driverId,
       allocatedVehicle: vehicleId,
+      pickupLocation: pickupText,
+      dropLocation: dropText,
       pickupCoords: {
         type: "Point",
         coordinates: [startLocation.lon, startLocation.lat],
