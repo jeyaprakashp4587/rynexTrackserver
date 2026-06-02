@@ -23,6 +23,7 @@ export const createDriver = async (req, res) => {
       MobileNumber,
       image,
       companyId,
+      isIndependentDriver: false,
     });
 
     if (companyId) {

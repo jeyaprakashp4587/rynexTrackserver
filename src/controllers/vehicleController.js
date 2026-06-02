@@ -4,7 +4,13 @@ import { Driver } from "../models/Driver.js";
 
 export const createCompanyVehicle = async (req, res) => {
   try {
-    const { vehicleNumber, vehicleImage, vehicleModel, coordinates } = req.body;
+    const {
+      vehicleNumber,
+      vehicleImage,
+      vehicleModel,
+      coordinates,
+      companyId,
+    } = req.body;
     console.log("Creating vehicle with coordinates:", coordinates);
 
     const userId = req.userId;
@@ -14,6 +20,7 @@ export const createCompanyVehicle = async (req, res) => {
       vehicleNumber,
       // vehicleImage,
       vehicleModel,
+      companyId,
       currentLocation: {
         type: "Point",
         coordinates: coordinates || [0, 0],
@@ -252,7 +259,7 @@ export const findNearbyVehicles = async (req, res) => {
       {
         $lookup: {
           from: "companies",
-          localField: "driver.companyId",
+          localField: "companyId",
           foreignField: "_id",
           as: "company",
         },
@@ -353,10 +360,11 @@ export const findNearbyVehicles = async (req, res) => {
                   case: {
                     $eq: ["$driver.isIndependentDriver", true],
                   },
-                  then: "INDEPENDENT_DRIVER",
+
+                  then: "INDEPENDENT_TRIP",
                 },
               ],
-              default: "COMPANY_DRIVER",
+              default: "COMPANY_TRIP",
             },
           },
         },
