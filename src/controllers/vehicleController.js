@@ -239,7 +239,6 @@ export const findNearbyVehicles = async (req, res) => {
           },
         },
       },
-
       {
         $lookup: {
           from: "drivers",
@@ -310,7 +309,9 @@ export const findNearbyVehicles = async (req, res) => {
           driverId: {
             $ifNull: ["$driver._id", null],
           },
-
+          driverUserId: {
+            $ifNull: ["$driver.driverUserId", null],
+          },
           driverName: {
             $ifNull: ["$driver.name", null],
           },

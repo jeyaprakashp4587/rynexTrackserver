@@ -11,6 +11,10 @@ const driverSchema = new mongoose.Schema({
     type: Boolean,
     default: true,
   },
+  driverUserId: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: "User",
+  },
   companyId: {
     type: mongoose.Schema.Types.ObjectId,
     ref: "Company",

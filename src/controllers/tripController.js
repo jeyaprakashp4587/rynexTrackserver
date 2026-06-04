@@ -95,3 +95,23 @@ export const completeTrip = async (req, res) => {
     res.status(500).json({ error: "Failed to complete trip" });
   }
 };
+//  create trip request
+export const requestTrip = async (req, res) => {
+  try {
+    const { data } = req.body;
+    const {
+      pickupCoords,
+      dropCoords,
+      pickupText,
+      dropText,
+      bookingType,
+      ownerId,
+      driverId,
+      vehicleId,
+    } = data;
+    console.log(data);
+    res.status(200).json({ message: "Trip requested successfully" });
+  } catch (error) {
+    res.status(500).json({ error: "Failed to request trip" });
+  }
+};
