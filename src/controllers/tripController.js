@@ -1,4 +1,5 @@
 import { Trip } from "../models/trip.js";
+import tripRequests from "../models/tripRequests.js";
 
 // create owner trip
 export const createTrip = async (req, res) => {
@@ -13,7 +14,7 @@ export const createTrip = async (req, res) => {
     } = req.body;
 
     const newTrip = new Trip({
-      createdBy: req.user._id,
+      createdBy: req.userId,
       allocatedDriver: driverId,
       allocatedVehicle: vehicleId,
       pickupLocation: pickupText,
@@ -99,6 +100,7 @@ export const completeTrip = async (req, res) => {
 export const requestTrip = async (req, res) => {
   try {
     const { data } = req.body;
+    const userId = req.userId;
     const {
       pickupCoords,
       dropCoords,
@@ -108,8 +110,43 @@ export const requestTrip = async (req, res) => {
       ownerId,
       driverId,
       vehicleId,
+      driverUserId,
     } = data;
     console.log(data);
+    console.log("userId:", userId);
+    // receipt controller
+    const bookingHandlers = {
+      COMPANY_TRIP: ownerId,
+      INDEPENDENT_TRIP: driverUserId,
+    };
+    // trip request cretrion
+    const newTripRequest = new tripRequests({
+      createdBy: userId,
+      pickupLocation: pickupText,
+      dropLocation: dropText,
+      pickupCoords: {
+        type: "Point",
+        coordinates: [pickupCoords.lon, pickupCoords.lat],
+      },
+      dropCoords: {
+        type: "Point",
+        coordinates: [dropCoords.lon, dropCoords.lat],
+      },
+      type: bookingType,
+      recipients: [
+        {
+          userId: bookingHandlers[bookingType],
+        },
+      ],
+      requestedData: {
+        driverId: driverId,
+        vehicleId: vehicleId,
+      },
+    });
+    await newTripRequest.save();
+    //
+    console.log("trip created");
+
     res.status(200).json({ message: "Trip requested successfully" });
   } catch (error) {
     res.status(500).json({ error: "Failed to request trip" });

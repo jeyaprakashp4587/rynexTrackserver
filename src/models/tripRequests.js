@@ -43,12 +43,20 @@ const tripRequests = new mongoose.Schema({
         type: mongoose.Schema.Types.ObjectId,
         required: true,
       },
-      userType: {
-        type: String,
-        enum: ["DRIVER", "COMPANY_OWNER"],
-      },
     },
   ],
+  requestedData: {
+    driverId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Driver",
+      required: true,
+    },
+    vehicleId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Vehicle",
+      required: true,
+    },
+  },
   status: {
     type: String,
     enum: ["PENDING", "ACCEPTED", "REJECTED", "CANCELLED", "EXPIRED"],
@@ -66,4 +74,6 @@ const tripRequests = new mongoose.Schema({
 });
 
 tripRequests.index({ pickupCoords: "2dsphere", dropCoords: "2dsphere" });
+tripRequests.index({ createdAt: 1 });
+tripRequests.index({ status: 1 });
 export default DB1.model("TripRequests", tripRequests);
