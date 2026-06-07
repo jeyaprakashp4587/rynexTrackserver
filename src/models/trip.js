@@ -53,6 +53,11 @@ const tripSchema = new mongoose.Schema({
     ref: "User",
     required: true,
   },
+  customer: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: "User",
+    required: true,
+  },
   allocatedDriver: {
     type: mongoose.Schema.Types.ObjectId,
     ref: "Driver",
@@ -70,7 +75,8 @@ const tripSchema = new mongoose.Schema({
   },
 });
 
-tripSchema.index({ pickupCoords: "2dsphere", dropCoords: "2dsphere" });
+tripSchema.index({ pickupCoords: "2dsphere" });
+tripSchema.index({ dropCoords: "2dsphere" });
 tripSchema.index({ createdAt: 1 });
 tripSchema.index({ allocatedDriver: 1 });
 tripSchema.index({ allocatedVehicle: 1 });

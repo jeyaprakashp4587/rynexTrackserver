@@ -1,3 +1,4 @@
+import mongoose from "mongoose";
 import { Trip } from "../models/trip.js";
 import tripRequests from "../models/tripRequests.js";
 
@@ -96,7 +97,7 @@ export const completeTrip = async (req, res) => {
     res.status(500).json({ error: "Failed to complete trip" });
   }
 };
-//  create trip request
+//  create trip request for both user and owner
 export const requestTrip = async (req, res) => {
   try {
     const { data } = req.body;
@@ -112,8 +113,6 @@ export const requestTrip = async (req, res) => {
       vehicleId,
       driverUserId,
     } = data;
-    console.log(data);
-    console.log("userId:", userId);
     // receipt controller
     const bookingHandlers = {
       COMPANY_TRIP: ownerId,
@@ -150,5 +149,150 @@ export const requestTrip = async (req, res) => {
     res.status(200).json({ message: "Trip requested successfully" });
   } catch (error) {
     res.status(500).json({ error: "Failed to request trip" });
+  }
+};
+// get request trips
+export const getRequestTrips = async (req, res) => {
+  try {
+    const userId = req.userId;
+    // console.log("trip", userId);
+    const trips = await tripRequests.aggregate([
+      {
+        $match: {
+          "recipients.userId": new mongoose.Types.ObjectId(userId),
+          status: "PENDING",
+        },
+      },
+
+      {
+        $lookup: {
+          from: "users",
+          localField: "createdBy",
+          foreignField: "_id",
+          pipeline: [
+            {
+              $project: {
+                _id: 1,
+                Name: 1,
+                MobileNumber: 1,
+                // profileImage: 1,
+              },
+            },
+          ],
+          as: "createdBy",
+        },
+      },
+
+      {
+        $unwind: {
+          path: "$createdBy",
+          preserveNullAndEmptyArrays: true,
+        },
+      },
+
+      {
+        $lookup: {
+          from: "drivers",
+          localField: "requestedData.driverId",
+          foreignField: "_id",
+          pipeline: [
+            {
+              $project: {
+                _id: 1,
+                name: 1,
+                phone: 1,
+                currentLocation: 1,
+              },
+            },
+          ],
+          as: "driver",
+        },
+      },
+
+      {
+        $unwind: {
+          path: "$driver",
+          preserveNullAndEmptyArrays: true,
+        },
+      },
+
+      {
+        $lookup: {
+          from: "vehicles",
+          localField: "requestedData.vehicleId",
+          foreignField: "_id",
+          pipeline: [
+            {
+              $project: {
+                _id: 1,
+                vehicleNumber: 1,
+                vehicleModel: 1,
+                vehicleImage: 1,
+              },
+            },
+          ],
+          as: "vehicle",
+        },
+      },
+
+      {
+        $unwind: {
+          path: "$vehicle",
+          preserveNullAndEmptyArrays: true,
+        },
+      },
+      {
+        $project: {
+          pickupLocation: 1,
+          dropLocation: 1,
+          createdAt: 1,
+          createdBy: 1,
+        },
+      },
+    ]);
+    if (!trips || trips.length === 0) {
+      console.log("no trip");
+      return res.status(404).json({ message: "No trip requests found" });
+    }
+    res.status(200).json(trips);
+  } catch (error) {
+    res.status(500).json({ error: "Failed to get trip requests" });
+  }
+};
+// accept trip for  (indi) driver and owner
+export const acceptTrip = async (req, res) => {
+  try {
+    const { tripId } = req.params;
+    // pass if they change the vehicle or driver
+    const { newAllocatedDriver, newAllocatedVehicle } = req.body;
+    const userId = req.userId;
+    // find the trip request details
+    const tripRequest = await tripRequests.findById(tripId);
+    // check the trip exist
+    if (!tripRequest) {
+      return res.status(404).json({ message: "Trip request not found" });
+    }
+    // Check if the user is authorized to accept the trip
+    if (tripRequest.status !== "PENDING") {
+      return res.status(400).json({ message: "Trip already created" });
+    }
+    const newTrip = new Trip({
+      tripRequestId: tripRequest._id,
+      pickupCoords: tripRequest.pickupCoords,
+      dropCoords: tripRequest.dropCoords,
+      pickupLocation: tripRequest.pickupLocation,
+      dropLocation: tripRequest.dropLocation,
+      createdBy: tripRequest.createdBy,
+      // customer: userId,
+      allocatedDriver: newAllocatedDriver || tripRequest.requestedData.driverId,
+      allocatedVehicle:
+        newAllocatedVehicle || tripRequest.requestedData.vehicleId,
+    });
+    // Update the trip request status
+    tripRequest.status = "ACCEPTED";
+    await tripRequest.save();
+    res.status(200).json({ message: "Trip request accepted successfully" });
+  } catch (error) {
+    res.status(500).json({ error: "Failed to accept trip request" });
   }
 };

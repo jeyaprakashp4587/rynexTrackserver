@@ -72,8 +72,8 @@ const tripRequests = new mongoose.Schema({
     default: Date.now,
   },
 });
-
-tripRequests.index({ pickupCoords: "2dsphere", dropCoords: "2dsphere" });
+tripRequests.index({ pickupCoords: "2dsphere" });
+tripRequests.index({ dropCoords: "2dsphere" });
 tripRequests.index({ createdAt: 1 });
 tripRequests.index({ status: 1 });
 export default DB1.model("TripRequests", tripRequests);
