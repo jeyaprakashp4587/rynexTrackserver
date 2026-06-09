@@ -31,7 +31,6 @@ export const createDriver = async (req, res) => {
         $push: { drivers: newDriver._id },
       });
     }
-    console.log("driver created");
 
     return res.status(201).json({
       success: true,
@@ -85,8 +84,16 @@ export const getMyCompanyDrivers = async (req, res) => {
     const userId = req.userId;
     const company = await Company.findOne({ owner: userId }).populate(
       "drivers",
-      { name: 1, MobileNumber: 1, image: 1 }
+      {
+        name: 1,
+        MobileNumber: 1,
+        image: 1,
+        driverUserId: 1,
+        currentlyAvailable: 1,
+      }
     );
+    // console.log(company.drivers);
+
     res.status(200).json({ drivers: company.drivers });
   } catch (error) {
     res.status(500).json({ error: "Failed to fetch drivers" });

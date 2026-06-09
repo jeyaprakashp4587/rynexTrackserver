@@ -2,42 +2,6 @@ import mongoose from "mongoose";
 import { Trip } from "../models/trip.js";
 import tripRequests from "../models/tripRequests.js";
 
-// create owner trip
-export const createTrip = async (req, res) => {
-  try {
-    const {
-      driverId,
-      vehicleId,
-      pickupCoords: startLocation,
-      dropCoords: endLocation,
-      pickupText,
-      dropText,
-    } = req.body;
-
-    const newTrip = new Trip({
-      createdBy: req.userId,
-      allocatedDriver: driverId,
-      allocatedVehicle: vehicleId,
-      pickupLocation: pickupText,
-      dropLocation: dropText,
-      pickupCoords: {
-        type: "Point",
-        coordinates: [startLocation.lon, startLocation.lat],
-      },
-      dropCoords: {
-        type: "Point",
-        coordinates: [endLocation.lon, endLocation.lat],
-      },
-      // status: "in-transit",
-    });
-    await newTrip.save();
-    res
-      .status(201)
-      .json({ message: "Trip created successfully", trip: newTrip });
-  } catch (error) {
-    res.status(500).json({ error: "Failed to create trip" });
-  }
-};
 // get trips for company jjbh vhbhv
 export const getMyCompanyTrips = async (req, res) => {
   try {
@@ -257,6 +221,21 @@ export const getRequestTrips = async (req, res) => {
     res.status(200).json(trips);
   } catch (error) {
     res.status(500).json({ error: "Failed to get trip requests" });
+  }
+};
+// get particualr trip details
+export const getParticularTripDetails = async (req, res) => {
+  try {
+    const { tripId } = req.params;
+    console.log("tripId", tripId);
+
+    const trip = await tripRequests.findById(tripId);
+    if (!trip) {
+      return res.status(404).json({ message: "Trip not found" });
+    }
+    res.status(200).json(trip);
+  } catch (error) {
+    res.status(500).json({ error: "Failed to get trip details" });
   }
 };
 // accept trip for  (indi) driver and owner
