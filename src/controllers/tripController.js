@@ -229,10 +229,17 @@ export const getParticularTripDetails = async (req, res) => {
     const { tripId } = req.params;
     console.log("tripId", tripId);
 
-    const trip = await tripRequests.findById(tripId);
+    const trip = await tripRequests
+      .findById(tripId)
+      .populate("requestedData.driverId", "name MobileNumber image")
+      .populate("requestedData.vehicleId", "vehicleNumber vehicleModel");
     if (!trip) {
+      // console.log("trip erro", trip);
+
       return res.status(404).json({ message: "Trip not found" });
     }
+    // console.log("trip ", trip);
+
     res.status(200).json(trip);
   } catch (error) {
     res.status(500).json({ error: "Failed to get trip details" });
@@ -243,10 +250,25 @@ export const acceptTrip = async (req, res) => {
   try {
     const { tripId } = req.params;
     // pass if they change the vehicle or driver
-    const { newAllocatedDriver, newAllocatedVehicle } = req.body;
+    const {
+      newAllocatedDriver,
+      newAllocatedVehicle,
+      newAllocatedDriverUserId,
+    } = req.body;
     const userId = req.userId;
     // find the trip request details
     const tripRequest = await tripRequests.findById(tripId);
+    // check type and create another request for company owner to driver
+    if (tripRequest.type === "COMPANY_TRIP") {
+      // create a new trip request for the driver
+      const newTripRequest = new tripRequests({
+        ...tripRequest.toObject(),
+        createdBy: userId,
+        status: "PENDING",
+        recipients: [newAllocatedDriverUserId],
+      });
+      await newTripRequest.save();
+    }
     // check the trip exist
     if (!tripRequest) {
       return res.status(404).json({ message: "Trip request not found" });
