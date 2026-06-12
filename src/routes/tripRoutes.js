@@ -20,4 +20,5 @@ router.get(
 );
 // post trip acceptance
 router.post("/accept/:tripId", verifyToken, acceptTrip);
+//
 export default router;

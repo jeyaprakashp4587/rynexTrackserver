@@ -1,6 +1,9 @@
 import mongoose from "mongoose";
 import { Trip } from "../models/trip.js";
 import tripRequests from "../models/tripRequests.js";
+import { errorResponse, successResponse } from "../utils/response.js";
+import { formatRecipients } from "../utils/formatters.js";
+import { TRIP_STATUS, TRIP_TYPE } from "../constants/statusConst.js";
 
 // get trips for company jjbh vhbhv
 export const getMyCompanyTrips = async (req, res) => {
@@ -72,17 +75,11 @@ export const requestTrip = async (req, res) => {
       pickupText,
       dropText,
       bookingType,
-      ownerId,
-      driverId,
-      vehicleId,
-      driverUserId,
+      recipients,
     } = data;
-    // receipt controller
-    const bookingHandlers = {
-      COMPANY_TRIP: ownerId,
-      INDEPENDENT_TRIP: driverUserId,
-    };
-    // trip request cretrion
+
+    const formattedRecipients = formatRecipients(recipients, userId);
+
     const newTripRequest = new tripRequests({
       createdBy: userId,
       pickupLocation: pickupText,
@@ -96,30 +93,28 @@ export const requestTrip = async (req, res) => {
         coordinates: [dropCoords.lon, dropCoords.lat],
       },
       type: bookingType,
-      recipients: [
-        {
-          userId: bookingHandlers[bookingType],
-        },
-      ],
-      requestedData: {
-        driverId: driverId,
-        vehicleId: vehicleId,
-      },
+      recipients: formattedRecipients,
+      status: "PENDING",
     });
-    await newTripRequest.save();
-    //
-    console.log("trip created");
 
-    res.status(200).json({ message: "Trip requested successfully" });
+    await newTripRequest.save();
+
+    res.status(200).json({
+      message: "Trip requested successfully",
+    });
   } catch (error) {
-    res.status(500).json({ error: "Failed to request trip" });
+    console.log(error);
+
+    res.status(500).json({
+      error: "Failed to request trip",
+    });
   }
 };
 // get request trips
 export const getRequestTrips = async (req, res) => {
   try {
     const userId = req.userId;
-    // console.log("trip", userId);
+
     const trips = await tripRequests.aggregate([
       {
         $match: {
@@ -128,6 +123,32 @@ export const getRequestTrips = async (req, res) => {
         },
       },
 
+      // get only current recipient
+      {
+        $addFields: {
+          currentRecipient: {
+            $filter: {
+              input: "$recipients",
+              as: "recipient",
+              cond: {
+                $eq: [
+                  "$$recipient.userId",
+                  new mongoose.Types.ObjectId(userId),
+                ],
+              },
+            },
+          },
+        },
+      },
+
+      {
+        $unwind: {
+          path: "$currentRecipient",
+          preserveNullAndEmptyArrays: true,
+        },
+      },
+
+      // creator lookup
       {
         $lookup: {
           from: "users",
@@ -139,7 +160,6 @@ export const getRequestTrips = async (req, res) => {
                 _id: 1,
                 Name: 1,
                 MobileNumber: 1,
-                // profileImage: 1,
               },
             },
           ],
@@ -154,10 +174,11 @@ export const getRequestTrips = async (req, res) => {
         },
       },
 
+      // driver lookup
       {
         $lookup: {
           from: "drivers",
-          localField: "requestedData.driverId",
+          localField: "currentRecipient.driverId",
           foreignField: "_id",
           pipeline: [
             {
@@ -180,10 +201,11 @@ export const getRequestTrips = async (req, res) => {
         },
       },
 
+      // vehicle lookup
       {
         $lookup: {
           from: "vehicles",
-          localField: "requestedData.vehicleId",
+          localField: "currentRecipient.vehicleId",
           foreignField: "_id",
           pipeline: [
             {
@@ -205,77 +227,89 @@ export const getRequestTrips = async (req, res) => {
           preserveNullAndEmptyArrays: true,
         },
       },
+
+      // final response
       {
         $project: {
           pickupLocation: 1,
           dropLocation: 1,
+          pickupCoords: 1,
+          dropCoords: 1,
+
           createdAt: 1,
+
           createdBy: 1,
+
+          driver: 1,
+          vehicle: 1,
+
+          currentRecipient: 1,
+
+          type: 1,
+          status: 1,
         },
       },
     ]);
+
     if (!trips || trips.length === 0) {
-      console.log("no trip");
-      return res.status(404).json({ message: "No trip requests found" });
+      return res.status(404).json({
+        message: "No trip requests found",
+      });
     }
+
     res.status(200).json(trips);
   } catch (error) {
-    res.status(500).json({ error: "Failed to get trip requests" });
+    console.log(error);
+
+    res.status(500).json({
+      error: "Failed to get trip requests",
+    });
   }
 };
 // get particualr trip details
 export const getParticularTripDetails = async (req, res) => {
   try {
     const { tripId } = req.params;
-    console.log("tripId", tripId);
-
-    const trip = await tripRequests
-      .findById(tripId)
-      .populate("requestedData.driverId", "name MobileNumber image")
-      .populate("requestedData.vehicleId", "vehicleNumber vehicleModel");
+    const trip = await tripRequests.findById(tripId);
     if (!trip) {
-      // console.log("trip erro", trip);
-
-      return res.status(404).json({ message: "Trip not found" });
+      errorResponse(res, "Trip not found", 404);
+      return;
     }
-    // console.log("trip ", trip);
-
-    res.status(200).json(trip);
+    successResponse(res, trip);
   } catch (error) {
-    res.status(500).json({ error: "Failed to get trip details" });
+    errorResponse(res, "Failed to get trip details");
   }
 };
-// accept trip for  (indi) driver and owner
+// accept trip for  (indi) driver and owner its will create request to trip
 export const acceptTrip = async (req, res) => {
   try {
     const { tripId } = req.params;
     // pass if they change the vehicle or driver
-    const {
-      newAllocatedDriver,
-      newAllocatedVehicle,
-      newAllocatedDriverUserId,
-    } = req.body;
+    const { recipients } = req.body;
     const userId = req.userId;
+    const formattedRecipients = formatRecipients(recipients, userId);
     // find the trip request details
     const tripRequest = await tripRequests.findById(tripId);
-    // check type and create another request for company owner to driver
-    if (tripRequest.type === "COMPANY_TRIP") {
+    // check type and create another request for company owner to driver, thia line owner asign to driver, using compant rtip and chett reuest to indivudual
+    if (tripRequest.type === TRIP_TYPE.COMPANY) {
       // create a new trip request for the driver
-      const newTripRequest = new tripRequests({
-        ...tripRequest.toObject(),
-        createdBy: userId,
-        status: "PENDING",
-        recipients: [newAllocatedDriverUserId],
-      });
-      await newTripRequest.save();
+      await tripRequests.updateOne(
+        { _id: tripId },
+        {
+          $set: {
+            recipients: formattedRecipients,
+            type: TRIP_TYPE.INDEPENDENT,
+          },
+        }
+      );
     }
     // check the trip exist
     if (!tripRequest) {
-      return res.status(404).json({ message: "Trip request not found" });
+      return errorResponse(res, "Trip request not found", 404);
     }
     // Check if the user is authorized to accept the trip
-    if (tripRequest.status !== "PENDING") {
-      return res.status(400).json({ message: "Trip already created" });
+    if (tripRequest.status !== TRIP_STATUS.PENDING) {
+      return errorResponse(res, "Trip already created", 400);
     }
     const newTrip = new Trip({
       tripRequestId: tripRequest._id,
@@ -290,10 +324,10 @@ export const acceptTrip = async (req, res) => {
         newAllocatedVehicle || tripRequest.requestedData.vehicleId,
     });
     // Update the trip request status
-    tripRequest.status = "ACCEPTED";
+    tripRequest.status = TRIP_STATUS.ACCEPTED;
     await tripRequest.save();
-    res.status(200).json({ message: "Trip request accepted successfully" });
+    successResponse(res, "Trip request accepted successfully");
   } catch (error) {
-    res.status(500).json({ error: "Failed to accept trip request" });
+    errorResponse(res, "Failed to accept trip request");
   }
 };

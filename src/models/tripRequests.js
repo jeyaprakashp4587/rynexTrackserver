@@ -1,5 +1,6 @@
 import mongoose from "mongoose";
 import { DB1 } from "../config/db.js";
+import { TRIP_STATUS } from "../constants/statusConst.js";
 
 const tripRequests = new mongoose.Schema({
   pickupCoords: {
@@ -32,39 +33,62 @@ const tripRequests = new mongoose.Schema({
     type: String,
     default: "Unknown",
   },
-  createdBy: {
-    type: mongoose.Schema.Types.ObjectId,
-    ref: "User",
-    required: true,
-  },
+  createdBy: [
+    {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "User",
+      required: true,
+    },
+  ],
   recipients: [
     {
       userId: {
         type: mongoose.Schema.Types.ObjectId,
         required: true,
       },
+
+      driverId: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: "Driver",
+      },
+
+      vehicleId: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: "Vehicle",
+      },
+
+      status: {
+        type: String,
+        enum: ["PENDING", "ACCEPTED", "REJECTED", "CANCELLED", "TIMEOUT"],
+        default: "PENDING",
+      },
+
+      assignedBy: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: "User",
+      },
+
+      assignedAt: {
+        type: Date,
+        default: Date.now,
+      },
     },
   ],
-  requestedData: {
-    driverId: {
-      type: mongoose.Schema.Types.ObjectId,
-      ref: "Driver",
-      required: true,
-    },
-    vehicleId: {
-      type: mongoose.Schema.Types.ObjectId,
-      ref: "Vehicle",
-      required: true,
-    },
-  },
+
   status: {
     type: String,
-    enum: ["PENDING", "ACCEPTED", "REJECTED", "CANCELLED", "EXPIRED"],
-    default: "PENDING",
+    enum: [
+      TRIP_STATUS.PENDING,
+      TRIP_STATUS.ACCEPTED,
+      TRIP_STATUS.REJECTED,
+      TRIP_STATUS.CANCELLED,
+      TRIP_STATUS.EXPIRED,
+    ],
+    default: TRIP_STATUS.PENDING,
   },
   type: {
     type: String,
-    enum: ["COMPANY_TRIP", "INDEPENDENT_TRIP"],
+    enum: [TRIP_TYPE.COMPANY, TRIP_TYPE.INDEPENDENT],
   },
 
   createdAt: {

@@ -3,6 +3,7 @@ import jwt from "jsonwebtoken";
 import { User } from "../models/User.js";
 import { createAccessToken, createRefreshToken } from "../middlewares/JWT.js";
 import mongoose from "mongoose";
+import { ROLES } from "../constants/statusConst.js";
 
 export const register = async (req, res) => {
   try {
@@ -22,7 +23,7 @@ export const register = async (req, res) => {
     const newUser = await User.create({
       MobileNumber: MobileNumber,
       password: hashedPassword,
-      role: role || "user",
+      role: role || ROLES.USER,
       Name: Name,
     });
     const accessToken = await createAccessToken(newUser);
