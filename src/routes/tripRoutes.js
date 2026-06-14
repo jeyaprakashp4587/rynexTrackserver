@@ -2,7 +2,7 @@ import { Router } from "express";
 import { verifyToken } from "../middlewares/JWT.js";
 import {
   acceptTrip,
-  getParticularTripDetails,
+  getParticularRequestedTripDetails,
   getRequestTrips,
   requestTrip,
 } from "../controllers/tripController.js";
@@ -12,11 +12,11 @@ const router = Router();
 router.post("/requestTrip", verifyToken, requestTrip);
 // get trip requests
 router.get("/getRequestTrips", verifyToken, getRequestTrips);
-// get particuar Trip details
+// get particular Trip details
 router.get(
-  "/getParticularTripDetails/:tripId",
+  "/getParticularRequestedTripDetails/:tripId",
   verifyToken,
-  getParticularTripDetails
+  getParticularRequestedTripDetails
 );
 // post trip acceptance
 router.post("/accept/:tripId", verifyToken, acceptTrip);

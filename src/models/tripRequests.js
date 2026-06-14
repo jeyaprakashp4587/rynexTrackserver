@@ -1,6 +1,6 @@
 import mongoose from "mongoose";
 import { DB1 } from "../config/db.js";
-import { TRIP_STATUS } from "../constants/statusConst.js";
+import { TRIP_STATUS, TRIP_TYPE } from "../constants/statusConst.js";
 
 const tripRequests = new mongoose.Schema({
   pickupCoords: {
@@ -59,8 +59,14 @@ const tripRequests = new mongoose.Schema({
 
       status: {
         type: String,
-        enum: ["PENDING", "ACCEPTED", "REJECTED", "CANCELLED", "TIMEOUT"],
-        default: "PENDING",
+        enum: [
+          TRIP_STATUS.PENDING,
+          TRIP_STATUS.ACCEPTED,
+          TRIP_STATUS.REJECTED,
+          TRIP_STATUS.CANCELLED,
+          TRIP_STATUS.TIMEOUT,
+        ],
+        default: TRIP_STATUS.PENDING,
       },
 
       assignedBy: {

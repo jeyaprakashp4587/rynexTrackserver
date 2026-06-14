@@ -77,6 +77,7 @@ export const requestTrip = async (req, res) => {
       bookingType,
       recipients,
     } = data;
+    console.log(userId, pickupCoords, dropCoords, recipients);
 
     const formattedRecipients = formatRecipients(recipients, userId);
 
@@ -98,16 +99,10 @@ export const requestTrip = async (req, res) => {
     });
 
     await newTripRequest.save();
-
-    res.status(200).json({
-      message: "Trip requested successfully",
-    });
+    successResponse(res, 200, "Trip requested successfully");
   } catch (error) {
     console.log(error);
-
-    res.status(500).json({
-      error: "Failed to request trip",
-    });
+    errorResponse(res, 500, "Failed to request trip");
   }
 };
 // get request trips
@@ -119,11 +114,10 @@ export const getRequestTrips = async (req, res) => {
       {
         $match: {
           "recipients.userId": new mongoose.Types.ObjectId(userId),
-          status: "PENDING",
+          "recipients.status": TRIP_STATUS.PENDING,
         },
       },
-
-      // get only current recipient
+      // get only current recipient and drivers or owner
       {
         $addFields: {
           currentRecipient: {
@@ -266,8 +260,9 @@ export const getRequestTrips = async (req, res) => {
     });
   }
 };
-// get particualr trip details
-export const getParticularTripDetails = async (req, res) => {
+
+// get particular request trip details
+export const getParticularRequestedTripDetails = async (req, res) => {
   try {
     const { tripId } = req.params;
     const trip = await tripRequests.findById(tripId);

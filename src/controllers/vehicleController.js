@@ -11,10 +11,10 @@ export const createCompanyVehicle = async (req, res) => {
       coordinates,
       companyId,
     } = req.body;
-    console.log("Creating vehicle with coordinates:", coordinates);
+    // console.log("Creating vehicle with coordinates:", coordinates);
 
     const userId = req.userId;
-    console.log("Creating vehicle for company:", userId);
+    // console.log("Creating vehicle for company:", userId);
 
     const newVehicle = new Vehicle({
       vehicleNumber,
@@ -74,7 +74,7 @@ export const createDriverVehicle = async (req, res) => {
 export const getMyCompanyVehicles = async (req, res) => {
   try {
     const userId = req.userId;
-    console.log("userId:", userId);
+    // console.log("userId:", userId);
 
     const company = await Company.findOne({ owner: userId }).populate(
       "vehicles",
