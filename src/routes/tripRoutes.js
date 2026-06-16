@@ -19,6 +19,6 @@ router.get(
   getParticularRequestedTripDetails
 );
 // post trip acceptance
-router.post("/accept/:tripId", verifyToken, acceptTrip);
+router.post("/acceptTrip", verifyToken, acceptTrip);
 //
 export default router;

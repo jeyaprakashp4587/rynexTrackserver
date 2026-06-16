@@ -74,8 +74,6 @@ export const createDriverVehicle = async (req, res) => {
 export const getMyCompanyVehicles = async (req, res) => {
   try {
     const userId = req.userId;
-    // console.log("userId:", userId);
-
     const company = await Company.findOne({ owner: userId }).populate(
       "vehicles",
       { vehicleNumber: 1, vehicleImage: 1, vehicleModel: 1 }

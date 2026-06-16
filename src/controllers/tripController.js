@@ -250,6 +250,7 @@ export const getRequestTrips = async (req, res) => {
         message: "No trip requests found",
       });
     }
+    // console.log("requested trip", trips);
 
     res.status(200).json(trips);
   } catch (error) {
@@ -260,30 +261,196 @@ export const getRequestTrips = async (req, res) => {
     });
   }
 };
-
 // get particular request trip details
 export const getParticularRequestedTripDetails = async (req, res) => {
   try {
     const { tripId } = req.params;
-    const trip = await tripRequests.findById(tripId);
-    if (!trip) {
-      errorResponse(res, "Trip not found", 404);
-      return;
+    const userId = req.userId;
+    // validate trip id
+    if (!mongoose.Types.ObjectId.isValid(tripId)) {
+      return errorResponse(res, "Invalid trip id");
     }
-    successResponse(res, trip);
+    const trip = await tripRequests.aggregate(
+      [
+        // match trip
+        {
+          $match: {
+            _id: new mongoose.Types.ObjectId(tripId),
+          },
+        },
+        // filter only current user receipts
+        {
+          $addFields: {
+            currentUserReceipts: {
+              $filter: {
+                input: "$recipients",
+                as: "receipt",
+                cond: {
+                  $eq: [{ $toString: "$$receipt.userId" }, userId.toString()],
+                },
+              },
+            },
+          },
+        },
+        // lookup users
+        {
+          $lookup: {
+            from: "users",
+            localField: "currentUserReceipts.userId",
+            foreignField: "_id",
+            as: "receiptUsers",
+            pipeline: [
+              {
+                $project: {
+                  Name: 1,
+                },
+              },
+            ],
+          },
+        },
+        // lookup drivers
+        {
+          $lookup: {
+            from: "drivers",
+            localField: "currentUserReceipts.driverId",
+            foreignField: "_id",
+            as: "receiptDrivers",
+            pipeline: [
+              {
+                $project: {
+                  name: 1,
+                  image: 1,
+                  MobileNumber: 1,
+                },
+              },
+            ],
+          },
+        },
+        // lookup vehicles
+        {
+          $lookup: {
+            from: "vehicles",
+            localField: "currentUserReceipts.vehicleId",
+            foreignField: "_id",
+            as: "receiptVehicles",
+            pipeline: [
+              {
+                $project: {
+                  vehicleNumber: 1,
+                  vehicleModel: 1,
+                },
+              },
+            ],
+          },
+        },
+        // merge user/driver/vehicle into receipt
+        {
+          $addFields: {
+            currentUserReceipts: {
+              $map: {
+                input: "$currentUserReceipts",
+                as: "receipt",
+                in: {
+                  $mergeObjects: [
+                    "$$receipt",
+
+                    // user
+                    {
+                      user: {
+                        $arrayElemAt: [
+                          {
+                            $filter: {
+                              input: "$receiptUsers",
+                              as: "user",
+                              cond: {
+                                $eq: [
+                                  { $toString: "$$user._id" },
+                                  { $toString: "$$receipt.userId" },
+                                ],
+                              },
+                            },
+                          },
+                          0,
+                        ],
+                      },
+                    },
+
+                    // driver
+                    {
+                      driver: {
+                        $arrayElemAt: [
+                          {
+                            $filter: {
+                              input: "$receiptDrivers",
+                              as: "driver",
+                              cond: {
+                                $eq: [
+                                  { $toString: "$$driver._id" },
+                                  { $toString: "$$receipt.driverId" },
+                                ],
+                              },
+                            },
+                          },
+                          0,
+                        ],
+                      },
+                    },
+
+                    // vehicle
+                    {
+                      vehicle: {
+                        $arrayElemAt: [
+                          {
+                            $filter: {
+                              input: "$receiptVehicles",
+                              as: "vehicle",
+                              cond: {
+                                $eq: [
+                                  { $toString: "$$vehicle._id" },
+                                  { $toString: "$$receipt.vehicleId" },
+                                ],
+                              },
+                            },
+                          },
+                          0,
+                        ],
+                      },
+                    },
+                  ],
+                },
+              },
+            },
+          },
+        },
+        // remove unnecessary arrays
+        {
+          $project: {
+            receiptUsers: 0,
+            receiptDrivers: 0,
+            receiptVehicles: 0,
+          },
+        },
+      ],
+      0
+    );
+    successResponse(res, trip[0]);
   } catch (error) {
+    console.log(error);
     errorResponse(res, "Failed to get trip details");
   }
 };
 // accept trip for  (indi) driver and owner its will create request to trip
 export const acceptTrip = async (req, res) => {
   try {
-    const { tripId } = req.params;
     // pass if they change the vehicle or driver
-    const { recipients } = req.body;
+    const { recipients, tripId } = req.body;
+    console.log("trip", tripId, recipients);
+    // return;
     const userId = req.userId;
-    const formattedRecipients = formatRecipients(recipients, userId);
-    // find the trip request details
+    let formattedRecipients;
+    if (recipients) {
+      formattedRecipients = formatRecipients(recipients, userId);
+    }
     const tripRequest = await tripRequests.findById(tripId);
     // check type and create another request for company owner to driver, thia line owner asign to driver, using compant rtip and chett reuest to indivudual
     if (tripRequest.type === TRIP_TYPE.COMPANY) {
@@ -297,15 +464,27 @@ export const acceptTrip = async (req, res) => {
           },
         }
       );
+      return;
     }
     // check the trip exist
     if (!tripRequest) {
       return errorResponse(res, "Trip request not found", 404);
     }
+    console.log("passsed trip checkS");
+
     // Check if the user is authorized to accept the trip
     if (tripRequest.status !== TRIP_STATUS.PENDING) {
       return errorResponse(res, "Trip already created", 400);
     }
+    console.log("recipients", tripRequest.recipients);
+    console.log("user id", userId);
+
+    // find matched recipients (te find that recipient driver vehicl and driver id)
+    const matchedRecipient = tripRequest.recipients.find((recipient) =>
+      recipient.userId.equals(userId)
+    );
+    console.log("passed mathc rep", matchedRecipient);
+
     const newTrip = new Trip({
       tripRequestId: tripRequest._id,
       pickupCoords: tripRequest.pickupCoords,
@@ -313,14 +492,14 @@ export const acceptTrip = async (req, res) => {
       pickupLocation: tripRequest.pickupLocation,
       dropLocation: tripRequest.dropLocation,
       createdBy: tripRequest.createdBy,
-      // customer: userId,
-      allocatedDriver: newAllocatedDriver || tripRequest.requestedData.driverId,
-      allocatedVehicle:
-        newAllocatedVehicle || tripRequest.requestedData.vehicleId,
+      // update the receipts if assigned driver changed or vehicle
+      allocatedDriver: matchedRecipient.driverId,
+      allocatedVehicle: matchedRecipient.vehicleId,
     });
     // Update the trip request status
     tripRequest.status = TRIP_STATUS.ACCEPTED;
     await tripRequest.save();
+    await newTrip.save();
     successResponse(res, "Trip request accepted successfully");
   } catch (error) {
     errorResponse(res, "Failed to accept trip request");
