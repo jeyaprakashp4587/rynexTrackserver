@@ -1,45 +1,14 @@
 import mongoose from "mongoose";
 import { DB1 } from "../config/db.js";
-import { TRIP_STATUS, TRIP_TYPE } from "../constants/statusConst.js";
+import { TRIP_MODE, TRIP_STATUS, TRIP_TYPE } from "../constants/statusConst.js";
 
 const tripRequests = new mongoose.Schema({
-  pickupCoords: {
-    type: {
-      type: String,
-      enum: ["Point"],
-      default: "Point",
-    },
-    coordinates: {
-      type: [Number],
-      default: [0, 0],
-    },
+  createdBy: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: "User",
+    required: true,
   },
-  dropCoords: {
-    type: {
-      type: String,
-      enum: ["Point"],
-      default: "Point",
-    },
-    coordinates: {
-      type: [Number],
-      default: [0, 0],
-    },
-  },
-  pickupLocation: {
-    type: String,
-    default: "Unknown",
-  },
-  dropLocation: {
-    type: String,
-    default: "Unknown",
-  },
-  createdBy: [
-    {
-      type: mongoose.Schema.Types.ObjectId,
-      ref: "User",
-      required: true,
-    },
-  ],
+
   recipients: [
     {
       userId: {
@@ -92,18 +61,28 @@ const tripRequests = new mongoose.Schema({
     ],
     default: TRIP_STATUS.PENDING,
   },
-  type: {
+  tripType: {
     type: String,
     enum: [TRIP_TYPE.COMPANY, TRIP_TYPE.INDEPENDENT],
+    default: TRIP_TYPE.INDEPENDENT,
   },
-
+  tripMode: {
+    type: String,
+    enum: [
+      TRIP_MODE.DISTRIBUTION,
+      TRIP_MODE.SINGLE,
+      TRIP_MODE.RETURN_TRIP,
+      TRIP_MODE.MULTI_STOP,
+    ],
+    default: TRIP_MODE.SINGLE,
+  },
   createdAt: {
     type: Date,
     default: Date.now,
   },
 });
-tripRequests.index({ pickupCoords: "2dsphere" });
-tripRequests.index({ dropCoords: "2dsphere" });
+
 tripRequests.index({ createdAt: 1 });
 tripRequests.index({ status: 1 });
+
 export default DB1.model("TripRequests", tripRequests);

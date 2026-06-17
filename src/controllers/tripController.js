@@ -4,101 +4,33 @@ import tripRequests from "../models/tripRequests.js";
 import { errorResponse, successResponse } from "../utils/response.js";
 import { formatRecipients } from "../utils/formatters.js";
 import { TRIP_STATUS, TRIP_TYPE } from "../constants/statusConst.js";
+import { formatTripStop } from "../utils/formatTripStop.js";
+import { TripStops } from "../models/tripStop.js";
 
-// get trips for company jjbh vhbhv
-export const getMyCompanyTrips = async (req, res) => {
-  try {
-    const trips = await Trip.find({ createdBy: req.user._id })
-      .populate("allocatedDriver", "name")
-      .populate("allocatedVehicle", "vehicleNumber");
-    res.status(200).json({ trips });
-  } catch (error) {
-    res.status(500).json({ error: "Failed to fetch trips" });
-  }
-};
-// start allocated trip for driver
-export const startTrip = async (req, res) => {
-  try {
-    const { tripId } = req.params;
-    const trip = await Trip.findById(tripId);
-    if (!trip) {
-      return res.status(404).json({ error: "Trip not found" });
-    }
-    if (trip.allocatedDriver.toString() !== req.user._id.toString()) {
-      return res.status(403).json({ error: "Unauthorized" });
-    }
-    trip.status = "started";
-    await trip.save();
-    res.status(200).json({ message: "Trip started successfully", trip });
-  } catch (error) {
-    res.status(500).json({ error: "Failed to start trip" });
-  }
-};
-// get allocated trip for drivers
-export const getMyTrip = async (req, res) => {
-  try {
-    const trip = await Trip.findOne({ allocatedDriver: req.user._id });
-    res.status(200).json({ trip });
-  } catch (error) {
-    res.status(500).json({ error: "Failed to fetch trip" });
-  }
-};
-// complete trip3
-export const completeTrip = async (req, res) => {
-  try {
-    const { tripId } = req.params;
-    const { photoProofUrl } = req.body;
-    const trip = await Trip.findById(tripId);
-    if (!trip) {
-      return res.status(404).json({ error: "Trip not found" });
-    }
-    if (trip.allocatedDriver.toString() !== req.user._id.toString()) {
-      return res.status(403).json({ error: "Unauthorized" });
-    }
-    trip.status = "completed";
-    trip.isTripEnded = true;
-    trip.photoProofUrl = photoProofUrl;
-    await trip.save();
-    res.status(200).json({ message: "Trip completed successfully", trip });
-  } catch (error) {
-    res.status(500).json({ error: "Failed to complete trip" });
-  }
-};
 //  create trip request for both user and owner
 export const requestTrip = async (req, res) => {
   try {
     const { data } = req.body;
     const userId = req.userId;
-    const {
-      pickupCoords,
-      dropCoords,
-      pickupText,
-      dropText,
-      bookingType,
-      recipients,
-    } = data;
-    console.log(userId, pickupCoords, dropCoords, recipients);
-
+    const { tripMode, bookingType, recipients, stops } = data;
+    // create format receipts into formatted receipts
     const formattedRecipients = formatRecipients(recipients, userId);
-
+    // create new trip request
     const newTripRequest = new tripRequests({
       createdBy: userId,
-      pickupLocation: pickupText,
-      dropLocation: dropText,
-      pickupCoords: {
-        type: "Point",
-        coordinates: [pickupCoords.lon, pickupCoords.lat],
-      },
-      dropCoords: {
-        type: "Point",
-        coordinates: [dropCoords.lon, dropCoords.lat],
-      },
-      type: bookingType,
+      tripType: bookingType,
+      tripMode: tripMode,
       recipients: formattedRecipients,
-      status: "PENDING",
+      status: TRIP_STATUS.PENDING,
     });
-
     await newTripRequest.save();
+    // push trip stops to trip stop as requestdata
+    const formattedTripsStop = formatTripStop(stops);
+    // create stops
+    const newStops = new TripStops({
+      tripRequestId: newTripRequest._id,
+      stops: formattedTripsStop,
+    });
     successResponse(res, 200, "Trip requested successfully");
   } catch (error) {
     console.log(error);
@@ -254,8 +186,6 @@ export const getRequestTrips = async (req, res) => {
 
     res.status(200).json(trips);
   } catch (error) {
-    console.log(error);
-
     res.status(500).json({
       error: "Failed to get trip requests",
     });
