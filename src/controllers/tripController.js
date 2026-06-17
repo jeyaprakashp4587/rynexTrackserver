@@ -1,5 +1,5 @@
 import mongoose from "mongoose";
-import { Trip } from "../models/trip.js";
+import { trip } from "../models/trip.js";
 import tripRequests from "../models/tripRequests.js";
 import { errorResponse, successResponse } from "../utils/response.js";
 import { formatRecipients } from "../utils/formatters.js";
@@ -7,32 +7,51 @@ import { TRIP_STATUS, TRIP_TYPE } from "../constants/statusConst.js";
 import { formatTripStop } from "../utils/formatTripStop.js";
 import { TripStops } from "../models/tripStop.js";
 
-//  create trip request for both user and owner
 export const requestTrip = async (req, res) => {
+  const session = await mongoose.startSession();
+
   try {
+    session.startTransaction();
+
     const { data } = req.body;
     const userId = req.userId;
     const { tripMode, bookingType, recipients, stops } = data;
-    // create format receipts into formatted receipts
+    // format recipients
     const formattedRecipients = formatRecipients(recipients, userId);
-    // create new trip request
-    const newTripRequest = new tripRequests({
-      createdBy: userId,
-      tripType: bookingType,
-      tripMode: tripMode,
-      recipients: formattedRecipients,
-      status: TRIP_STATUS.PENDING,
-    });
-    await newTripRequest.save();
-    // push trip stops to trip stop as requestdata
-    const formattedTripsStop = formatTripStop(stops);
-    // create stops
-    const newStops = new TripStops({
-      tripRequestId: newTripRequest._id,
-      stops: formattedTripsStop,
-    });
+    // create trip request
+    const newTripRequest = await tripRequests.create(
+      [
+        {
+          createdBy: userId,
+          tripType: bookingType,
+          tripMode: tripMode,
+          recipients: formattedRecipients,
+          status: TRIP_STATUS.PENDING,
+        },
+      ],
+      { session }
+    );
+    // format stops
+    const formattedStops = formatTripStop(stops);
+    // create trip stops
+    await TripStops.create(
+      [
+        {
+          tripRequestId: newTripRequest[0]._id,
+
+          stops: formattedStops,
+        },
+      ],
+      { session }
+    );
+    // commit all DB operations
+    await session.commitTransaction();
+    session.endSession();
     successResponse(res, 200, "Trip requested successfully");
   } catch (error) {
+    // rollback all changes
+    await session.abortTransaction();
+    session.endSession();
     console.log(error);
     errorResponse(res, 500, "Failed to request trip");
   }
@@ -41,7 +60,6 @@ export const requestTrip = async (req, res) => {
 export const getRequestTrips = async (req, res) => {
   try {
     const userId = req.userId;
-
     const trips = await tripRequests.aggregate([
       {
         $match: {
@@ -182,8 +200,6 @@ export const getRequestTrips = async (req, res) => {
         message: "No trip requests found",
       });
     }
-    // console.log("requested trip", trips);
-
     res.status(200).json(trips);
   } catch (error) {
     res.status(500).json({
@@ -273,6 +289,7 @@ export const getParticularRequestedTripDetails = async (req, res) => {
             ],
           },
         },
+        // look up trips stop details
         // merge user/driver/vehicle into receipt
         {
           $addFields: {
@@ -371,67 +388,148 @@ export const getParticularRequestedTripDetails = async (req, res) => {
 };
 // accept trip for  (indi) driver and owner its will create request to trip
 export const acceptTrip = async (req, res) => {
+  const session = await mongoose.startSession();
   try {
-    // pass if they change the vehicle or driver
+    session.startTransaction();
     const { recipients, tripId } = req.body;
-    console.log("trip", tripId, recipients);
-    // return;
     const userId = req.userId;
-    let formattedRecipients;
-    if (recipients) {
+    let formattedRecipients = [];
+    // company owner reassigning driver/vehicle
+    if (recipients?.length) {
       formattedRecipients = formatRecipients(recipients, userId);
     }
-    const tripRequest = await tripRequests.findById(tripId);
-    // check type and create another request for company owner to driver, thia line owner asign to driver, using compant rtip and chett reuest to indivudual
+    // find request safely
+    const tripRequest = await tripRequests.findById(tripId).session(session);
+    if (!tripRequest) {
+      await session.abortTransaction();
+      session.endSession();
+      return errorResponse(res, "Trip request not found", 404);
+    }
+    // COMPANY FLOW owner assigns to driver
+
     if (tripRequest.type === TRIP_TYPE.COMPANY) {
-      // create a new trip request for the driver
       await tripRequests.updateOne(
-        { _id: tripId },
+        {
+          _id: tripId,
+        },
         {
           $set: {
             recipients: formattedRecipients,
             type: TRIP_TYPE.INDEPENDENT,
           },
+        },
+        {
+          session,
         }
       );
-      return;
-    }
-    // check the trip exist
-    if (!tripRequest) {
-      return errorResponse(res, "Trip request not found", 404);
-    }
-    console.log("passsed trip checkS");
 
-    // Check if the user is authorized to accept the trip
-    if (tripRequest.status !== TRIP_STATUS.PENDING) {
-      return errorResponse(res, "Trip already created", 400);
+      await session.commitTransaction();
+      session.endSession();
+      return successResponse(res, "Trip assigned to driver successfully");
     }
-    console.log("recipients", tripRequest.recipients);
-    console.log("user id", userId);
 
-    // find matched recipients (te find that recipient driver vehicl and driver id)
-    const matchedRecipient = tripRequest.recipients.find((recipient) =>
+    // prevent duplicate accepts
+
+    const updatedTripRequest = await tripRequests.findOneAndUpdate(
+      {
+        _id: tripId,
+        status: TRIP_STATUS.PENDING,
+      },
+      {
+        $set: {
+          status: TRIP_STATUS.ACCEPTED,
+        },
+      },
+      {
+        new: true,
+        session,
+      }
+    );
+
+    if (!updatedTripRequest) {
+      await session.abortTransaction();
+
+      session.endSession();
+
+      return errorResponse(res, "Trip already accepted or unavailable", 400);
+    }
+
+    /**
+     * find matched recipient
+     */
+    const matchedRecipient = updatedTripRequest.recipients.find((recipient) =>
       recipient.userId.equals(userId)
     );
-    console.log("passed mathc rep", matchedRecipient);
 
-    const newTrip = new Trip({
-      tripRequestId: tripRequest._id,
-      pickupCoords: tripRequest.pickupCoords,
-      dropCoords: tripRequest.dropCoords,
-      pickupLocation: tripRequest.pickupLocation,
-      dropLocation: tripRequest.dropLocation,
-      createdBy: tripRequest.createdBy,
-      // update the receipts if assigned driver changed or vehicle
+    if (!matchedRecipient) {
+      await session.abortTransaction();
+
+      session.endSession();
+
+      return errorResponse(res, "Unauthorized trip access", 403);
+    }
+
+    // create actual trip
+    const newTrip = new trip({
+      tripRequestId: updatedTripRequest._id,
+
+      createdBy: updatedTripRequest.createdBy,
+
       allocatedDriver: matchedRecipient.driverId,
+
       allocatedVehicle: matchedRecipient.vehicleId,
+
+      status: TRIP_STATUS.ACCEPTED,
+
+      currentStopIndex: 1,
     });
-    // Update the trip request status
-    tripRequest.status = TRIP_STATUS.ACCEPTED;
-    await tripRequest.save();
-    await newTrip.save();
-    successResponse(res, "Trip request accepted successfully");
+
+    await newTrip.save({ session });
+
+    // attach tripId into TripStops
+
+    await TripStops.updateOne(
+      {
+        tripRequestId: updatedTripRequest._id,
+      },
+      {
+        $set: {
+          tripId: newTrip._id,
+        },
+      },
+      {
+        session,
+      }
+    );
+
+    // update recipient status
+    await tripRequests.updateOne(
+      {
+        _id: updatedTripRequest._id,
+        "recipients.userId": userId,
+      },
+      {
+        $set: {
+          "recipients.$.status": TRIP_STATUS.ACCEPTED,
+        },
+      },
+      {
+        session,
+      }
+    );
+
+    // commit everythings
+    await session.commitTransaction();
+    session.endSession();
+
+    return successResponse(res, "Trip accepted successfully");
   } catch (error) {
-    errorResponse(res, "Failed to accept trip request");
+    console.log(error);
+
+    await session.abortTransaction();
+
+    session.endSession();
+
+    return errorResponse(res, "Failed to accept trip request", 500);
   }
 };
