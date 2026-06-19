@@ -9,10 +9,8 @@ import { TripStops } from "../models/tripStop.js";
 
 export const requestTrip = async (req, res) => {
   const session = await mongoose.startSession();
-
   try {
     session.startTransaction();
-
     const { data } = req.body;
     const userId = req.userId;
     const { tripMode, bookingType, recipients, stops } = data;
@@ -67,6 +65,18 @@ export const getRequestTrips = async (req, res) => {
           "recipients.status": TRIP_STATUS.PENDING,
         },
       },
+      // get that trip requested stop fro trp stop schema
+      {
+        $lookup: {
+          from: "tripstops",
+          localField: "_id",
+          foreignField: "tripRequestId",
+          as: "tripStops",
+        },
+      },
+      {
+        $unwind: "$tripStops",
+      },
       // get only current recipient and drivers or owner
       {
         $addFields: {
@@ -84,14 +94,12 @@ export const getRequestTrips = async (req, res) => {
           },
         },
       },
-
       {
         $unwind: {
           path: "$currentRecipient",
           preserveNullAndEmptyArrays: true,
         },
       },
-
       // creator lookup
       {
         $lookup: {
@@ -110,14 +118,12 @@ export const getRequestTrips = async (req, res) => {
           as: "createdBy",
         },
       },
-
       {
         $unwind: {
           path: "$createdBy",
           preserveNullAndEmptyArrays: true,
         },
       },
-
       // driver lookup
       {
         $lookup: {
@@ -137,14 +143,12 @@ export const getRequestTrips = async (req, res) => {
           as: "driver",
         },
       },
-
       {
         $unwind: {
           path: "$driver",
           preserveNullAndEmptyArrays: true,
         },
       },
-
       // vehicle lookup
       {
         $lookup: {
@@ -164,7 +168,6 @@ export const getRequestTrips = async (req, res) => {
           as: "vehicle",
         },
       },
-
       {
         $unwind: {
           path: "$vehicle",
@@ -175,20 +178,13 @@ export const getRequestTrips = async (req, res) => {
       // final response
       {
         $project: {
-          pickupLocation: 1,
-          dropLocation: 1,
-          pickupCoords: 1,
-          dropCoords: 1,
-
+          _id: 1,
+          stops: "$tripStops",
           createdAt: 1,
-
           createdBy: 1,
-
           driver: 1,
           vehicle: 1,
-
           currentRecipient: 1,
-
           type: 1,
           status: 1,
         },
@@ -406,7 +402,6 @@ export const acceptTrip = async (req, res) => {
       return errorResponse(res, "Trip request not found", 404);
     }
     // COMPANY FLOW owner assigns to driver
-
     if (tripRequest.type === TRIP_TYPE.COMPANY) {
       await tripRequests.updateOne(
         {

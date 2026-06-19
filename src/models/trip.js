@@ -1,5 +1,5 @@
 import mongoose from "mongoose";
-import { TRIP_MODE } from "../constants/statusConst.js";
+import { TRIP_MODE, TRIP_STATUS } from "../constants/statusConst.js";
 import { DB1 } from "../config/db.js";
 
 const tripSchema = new mongoose.Schema(
