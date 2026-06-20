@@ -8,9 +8,9 @@ import { formatTripStop } from "../utils/formatTripStop.js";
 import { TripStops } from "../models/tripStop.js";
 
 export const requestTrip = async (req, res) => {
-  const session = await mongoose.startSession();
+  // const session = await mongoose.startSession();
   try {
-    session.startTransaction();
+    // session.startTransaction();
     const { data } = req.body;
     const userId = req.userId;
     const { tripMode, bookingType, recipients, stops } = data;
@@ -26,31 +26,29 @@ export const requestTrip = async (req, res) => {
           recipients: formattedRecipients,
           status: TRIP_STATUS.PENDING,
         },
-      ],
-      { session }
+      ]
+      // { session }
     );
-    // format stops
     const formattedStops = formatTripStop(stops);
     // create trip stops
     await TripStops.create(
       [
         {
           tripRequestId: newTripRequest[0]._id,
-
           stops: formattedStops,
         },
-      ],
-      { session }
+      ]
+      // { session }
     );
     // commit all DB operations
-    await session.commitTransaction();
-    session.endSession();
+    // await session.commitTransaction();
+    // session.endSession();
     successResponse(res, 200, "Trip requested successfully");
   } catch (error) {
     // rollback all changes
-    await session.abortTransaction();
-    session.endSession();
-    console.log(error);
+    // await session.abortTransaction();
+    // session.endSession();
+    console.log("error", error);
     errorResponse(res, 500, "Failed to request trip");
   }
 };
@@ -185,7 +183,8 @@ export const getRequestTrips = async (req, res) => {
           driver: 1,
           vehicle: 1,
           currentRecipient: 1,
-          type: 1,
+          tripType: 1,
+          tripMode: 1,
           status: 1,
         },
       },
@@ -196,6 +195,8 @@ export const getRequestTrips = async (req, res) => {
         message: "No trip requests found",
       });
     }
+    console.log("trip details", trips);
+
     res.status(200).json(trips);
   } catch (error) {
     res.status(500).json({

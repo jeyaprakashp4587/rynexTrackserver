@@ -8,7 +8,7 @@ import { ROLES } from "../constants/statusConst.js";
 export const register = async (req, res) => {
   try {
     const { MobileNumber, password, role, Name } = req.body;
-    console.log(MobileNumber, password, role, Name);
+    // console.log(MobileNumber, password, role, Name);
 
     const existingUser = await User.exists({
       MobileNumber: MobileNumber,
@@ -46,7 +46,7 @@ export const register = async (req, res) => {
 // login
 export const login = async (req, res) => {
   const { MobileNumber, password } = req.body;
-  console.log("trigger", MobileNumber, password);
+  // console.log("trigger", MobileNumber, password);
 
   try {
     // return;
@@ -57,7 +57,7 @@ export const login = async (req, res) => {
     }
 
     const findMobileUser = await User.findOne({ MobileNumber });
-    console.log("find user", findMobileUser);
+    // console.log("find user", findMobileUser);
 
     if (!findMobileUser) {
       console.log("triffet");
@@ -81,7 +81,7 @@ export const login = async (req, res) => {
     delete userData.password;
     const accessToken = await createAccessToken(userData);
     const refreshToken = await createRefreshToken(userData);
-    console.log("user", userData);
+    // console.log("user", userData);
 
     return res.status(200).json({
       message: "login successful",
@@ -122,14 +122,14 @@ export const refresh = async (req, res) => {
 // get User
 export const getMe = async (req, res) => {
   const userId = req.userId;
-  console.log("userid", userId);
+  // console.log("userid", userId);
 
   try {
     const userData = await User.findById(userId, { password: 0 });
     if (userData) {
       const accessToken = await createAccessToken(userData);
       const refreshToken = await createRefreshToken(userData);
-      console.log("User data:", userData);
+      // console.log("User data:", userData);
       res
         .status(200)
         .json({ user: userData, tokens: { accessToken, refreshToken } });

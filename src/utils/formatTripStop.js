@@ -1,6 +1,6 @@
 export const formatTripStop = (stops) => {
   return stops.map((stop, index) => ({
-    locationName: stop.location,
+    locationName: stop.locationName,
 
     coords: {
       type: "Point",
