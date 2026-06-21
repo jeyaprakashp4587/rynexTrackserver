@@ -3,7 +3,8 @@ import jwt from "jsonwebtoken";
 import { User } from "../models/User.js";
 import { createAccessToken, createRefreshToken } from "../middlewares/JWT.js";
 import mongoose from "mongoose";
-import { ROLES } from "../constants/statusConst.js";
+import { ROLES } from "../shared/constants/role.js";
+import { errorResponse, successResponse } from "../shared/utils/response.js";
 
 export const register = async (req, res) => {
   try {
@@ -28,19 +29,22 @@ export const register = async (req, res) => {
     });
     const accessToken = await createAccessToken(newUser);
     const refreshToken = await createRefreshToken(newUser);
-
-    res.status(201).json({
-      message: "Register succesfully",
-      user: {
-        id: newUser._id,
-        MobileNumber: newUser.MobileNumber,
-        role: newUser.role,
+    successResponse({
+      res,
+      statusCode: 201,
+      message: "Registered successfully",
+      data: {
+        user: {
+          id: newUser._id,
+          MobileNumber: newUser.MobileNumber,
+          role: newUser.role,
+        },
+        tokens: { accessToken, refreshToken },
       },
-      tokens: { accessToken, refreshToken },
     });
   } catch (err) {
     console.error(err);
-    res.status(500).json({ error: "Server error" });
+    errorResponse({ statusCode: 500, res });
   }
 };
 // login
@@ -51,9 +55,11 @@ export const login = async (req, res) => {
   try {
     // return;
     if (!MobileNumber || !password) {
-      return res
-        .status(400)
-        .json({ error: "Mobile number and Password are required." });
+      return errorResponse({
+        statusCode: 400,
+        res,
+        message: "Mobile number and Password are required.",
+      });
     }
 
     const findMobileUser = await User.findOne({ MobileNumber });
@@ -62,9 +68,11 @@ export const login = async (req, res) => {
     if (!findMobileUser) {
       console.log("triffet");
 
-      return res
-        .status(400)
-        .json({ error: "Mobile number or Password is incorrect." });
+      return errorResponse({
+        statusCode: 400,
+        res,
+        message: "Mobile number or Password is incorrect.",
+      });
     }
 
     const isPasswordCorrect = await bcrypt.compare(
@@ -73,9 +81,11 @@ export const login = async (req, res) => {
     );
 
     if (!isPasswordCorrect) {
-      return res
-        .status(401)
-        .json({ error: "Mobile number or Password is incorrect." });
+      return errorResponse({
+        statusCode: 401,
+        res,
+        message: "Mobile number or Password is incorrect.",
+      });
     }
     const userData = findMobileUser.toObject();
     delete userData.password;
@@ -83,14 +93,18 @@ export const login = async (req, res) => {
     const refreshToken = await createRefreshToken(userData);
     // console.log("user", userData);
 
-    return res.status(200).json({
+    return successResponse({
+      res,
+      statusCode: 200,
       message: "login successful",
-      user: userData,
-      tokens: { accessToken, refreshToken },
+      data: {
+        user: userData,
+        tokens: { accessToken, refreshToken },
+      },
     });
   } catch (error) {
     console.error("Login Error:", error);
-    res.status(500).json({ error: "Internal Server Error" });
+    errorResponse({ statusCode: 500, res });
   }
 };
 // refresh token
@@ -98,7 +112,11 @@ export const refresh = async (req, res) => {
   try {
     const { refreshToken } = req.body;
     if (!refreshToken)
-      return res.status(401).json({ msg: "No token provided" });
+      return errorResponse({
+        statusCode: 401,
+        res,
+        message: "No token provided",
+      });
     // Verify the refresh token
     const decoded = jwt.verify(
       refreshToken,
@@ -106,16 +124,20 @@ export const refresh = async (req, res) => {
     );
     const user = await User.findById(decoded.userId);
     if (!user) {
-      return res.status(404).json({ msg: "User not found" });
+      return errorResponse({ statusCode: 404, res, message: "User not found" });
     }
     const newAccessToken = await createAccessToken(user);
     res.json({ accessToken: newAccessToken });
   } catch (err) {
     if (err.name === "JsonWebTokenError" || err.name === "TokenExpiredError") {
-      return res.status(403).json({ msg: "Invalid or expired refresh token" });
+      return errorResponse({
+        statusCode: 403,
+        res,
+        message: "Invalid or expired refresh token",
+      });
     }
     console.error("Refresh token error:", err);
-    res.status(500).json({ error: err.message });
+    return errorResponse({ statusCode: 500, res, message: err.message });
   }
 };
 

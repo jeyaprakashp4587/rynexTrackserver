@@ -1,4 +1,5 @@
 import { Company } from "../models/Company.js";
+import { errorResponse, successResponse } from "../shared/utils/response.js";
 
 export const createCompany = async (req, res) => {
   try {
@@ -12,9 +13,17 @@ export const createCompany = async (req, res) => {
       address,
       GSTNumber: GstNumber,
     });
-    res.status(201).json({ message: "Company created successfully" });
+    successResponse({
+      statusCode: 201,
+      res,
+      message: "Company created successfully",
+    });
   } catch (error) {
-    res.status(500).json({ error: "Failed to create company" });
+    return errorResponse({
+      statusCode: 500,
+      res,
+      message: "Failed to create company",
+    });
   }
 };
 
@@ -26,10 +35,23 @@ export const getMyCompany = async (req, res) => {
       { drivers: 0, vehicles: 0 }
     );
     if (!company) {
-      return res.status(404).json({ message: "Company not found" });
+      return errorResponse({
+        statusCode: 404,
+        res,
+        message: "Company not found",
+      });
     }
-    res.status(200).json(company);
+    successResponse({
+      statusCode: 200,
+      res,
+      message: "Company retrieved successfully",
+      data: company,
+    });
   } catch (error) {
-    res.status(500).json({ error: "Failed to retrieve company" });
+    return errorResponse({
+      statusCode: 500,
+      res,
+      message: "Failed to retrieve company",
+    });
   }
 };

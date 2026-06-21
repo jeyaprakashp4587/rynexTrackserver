@@ -1,6 +1,7 @@
 import mongoose from "mongoose";
 import { Company } from "../models/Company.js";
 import { Driver } from "../models/Driver.js";
+import { errorResponse, successResponse } from "../shared/utils/response.js";
 
 // create driver for my company
 export const createDriver = async (req, res) => {
@@ -11,10 +12,12 @@ export const createDriver = async (req, res) => {
     console.log(name, MobileNumber, image, vehicleId, companyId);
 
     if (!name || !MobileNumber) {
-      return res.status(400).json({
-        success: false,
+      errorResponse({
+        statusCode: 400,
+        res,
         message: "Name and MobileNumber are required",
       });
+      return;
     }
 
     // return;
@@ -31,16 +34,18 @@ export const createDriver = async (req, res) => {
         $push: { drivers: newDriver._id },
       });
     }
-
-    return res.status(201).json({
-      success: true,
+    successResponse({
+      res,
+      statusCode: 201,
       message: "Driver created successfully",
-      driver: newDriver,
+      data: { driver: newDriver },
     });
+    return;
   } catch (error) {
     console.error(error);
-    return res.status(500).json({
-      success: false,
+    return errorResponse({
+      statusCode: 500,
+      res,
       message: "Failed to create driver",
     });
   }
@@ -50,8 +55,8 @@ export const onBoardingDriver = async (req, res) => {
   try {
     const { name, MobileNumber, image, coordinates } = req.body;
     if (!name || !MobileNumber) {
-      return res.status(400).json({
-        success: false,
+      return errorResponse({
+        statusCode: 400,
         message: "Name and MobileNumber are required",
       });
     }
@@ -72,8 +77,9 @@ export const onBoardingDriver = async (req, res) => {
     });
   } catch (error) {
     console.error(error);
-    res.status(500).json({
-      success: false,
+    return errorResponse({
+      statusCode: 500,
+      res,
       message: "Failed to create driver",
     });
   }
@@ -93,9 +99,17 @@ export const getMyCompanyDrivers = async (req, res) => {
       }
     );
     // console.log(company.drivers);
-
-    res.status(200).json({ drivers: company.drivers });
+    successResponse({
+      res,
+      statusCode: 200,
+      message: "Fetched drivers successfully",
+      data: { drivers: company.drivers },
+    });
   } catch (error) {
-    res.status(500).json({ error: "Failed to fetch drivers" });
+    return errorResponse({
+      statusCode: 500,
+      res,
+      message: "Failed to fetch drivers",
+    });
   }
 };

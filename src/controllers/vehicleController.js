@@ -1,6 +1,7 @@
 import { Company } from "../models/Company.js";
 import { Vehicle } from "../models/Vehicle.js";
 import { Driver } from "../models/Driver.js";
+import { errorResponse, successResponse } from "../shared/utils/response.js";
 
 export const createCompanyVehicle = async (req, res) => {
   try {
@@ -36,11 +37,18 @@ export const createCompanyVehicle = async (req, res) => {
     );
 
     // Logic to create a vehicle in the database
-    res
-      .status(201)
-      .json({ message: "Vehicle created successfully", vehicle: newVehicle });
+    successResponse({
+      statusCode: 201,
+      res,
+      message: "Vehicle created successfully",
+      data: newVehicle,
+    });
   } catch (error) {
-    res.status(500).json({ error: "Failed to create vehicle" });
+    return errorResponse({
+      statusCode: 500,
+      res,
+      message: "Failed to create vehicle",
+    });
   }
 };
 // this creation for create user non company driver create vehicle of own self
@@ -65,7 +73,12 @@ export const createDriverVehicle = async (req, res) => {
       currentDriver: userId,
     });
     // Logic to create a vehicle in the database
-    res.status(201).json({ message: "Vehicle created successfully" });
+    successResponse({
+      statusCode: 201,
+      res,
+      message: "Vehicle created successfully",
+      data: newVehicle,
+    });
   } catch (error) {
     res.status(500).json({ error: "Failed to create vehicle" });
   }
@@ -78,9 +91,18 @@ export const getMyCompanyVehicles = async (req, res) => {
       "vehicles",
       { vehicleNumber: 1, vehicleImage: 1, vehicleModel: 1 }
     );
-    res.status(200).json({ vehicles: company.vehicles });
+    successResponse({
+      statusCode: 200,
+      res,
+      message: "Fetched vehicles successfully",
+      data: company.vehicles,
+    });
   } catch (error) {
-    res.status(500).json({ error: "Failed to fetch vehicles" });
+    return errorResponse({
+      statusCode: 500,
+      res,
+      message: "Failed to fetch vehicles",
+    });
   }
 };
 // get my vehicle for driver
@@ -88,9 +110,18 @@ export const getMyVehicles = async (req, res) => {
   try {
     const userId = req.userId;
     const vehicles = await Vehicle.find({ currentDriver: userId });
-    res.status(200).json({ vehicles });
+    successResponse({
+      statusCode: 200,
+      res,
+      message: "Fetched vehicles successfully",
+      data: vehicles,
+    });
   } catch (error) {
-    res.status(500).json({ error: "Failed to fetch vehicles" });
+    return errorResponse({
+      statusCode: 500,
+      res,
+      message: "Failed to fetch vehicles",
+    });
   }
 };
 
@@ -99,8 +130,9 @@ export const findNearbyVehicles = async (req, res) => {
     const { lat, lon, radiusKm = 50 } = req.query;
 
     if (!lat || !lon) {
-      return res.status(400).json({
-        success: false,
+      return errorResponse({
+        statusCode: 400,
+        res,
         message: "Latitude and longitude are required",
       });
     }
@@ -260,17 +292,18 @@ export const findNearbyVehicles = async (req, res) => {
         },
       },
     ]);
-
-    return res.status(200).json({
-      success: true,
-      count: vehicles.length,
+    successResponse({
+      statusCode: 200,
+      res,
+      message: "Fetched nearby vehicles successfully",
       data: vehicles,
     });
   } catch (error) {
     console.error("findNearbyVehicles:", error);
 
-    return res.status(500).json({
-      success: false,
+    return errorResponse({
+      statusCode: 500,
+      res,
       message: "Failed to fetch nearby vehicles",
     });
   }

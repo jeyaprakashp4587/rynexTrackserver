@@ -4,7 +4,7 @@ import authRoutes from "./routes/authRoutes.js";
 import vehicleRoutes from "./routes/vehicleRoutes.js";
 import companyRoutes from "./routes/companyRoutes.js";
 import driverRoutes from "./routes/driverRoutes.js";
-import tripRoutes from "./routes/tripRoutes.js";
+import tripRoutes from "./modules/trip/trip.route.js";
 import bodyParser from "body-parser";
 
 const app = express();

@@ -1,4 +1,4 @@
-import { TRIP_STATUS } from "../constants/statusConst.js";
+import { TRIP_STATUS } from "../constants/trip.constants.js";
 
 export const formatRecipients = (recipients, assignedBy) => {
   return recipients.map((recipient) => ({

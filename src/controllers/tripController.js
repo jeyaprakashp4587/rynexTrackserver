@@ -6,6 +6,7 @@ import { formatRecipients } from "../utils/formatters.js";
 import { TRIP_STATUS, TRIP_TYPE } from "../constants/statusConst.js";
 import { formatTripStop } from "../utils/formatTripStop.js";
 import { TripStops } from "../models/tripStop.js";
+import { ROLES } from "../../../Rynextrack/src/app/constants/statusConst.js";
 
 export const requestTrip = async (req, res) => {
   // const session = await mongoose.startSession();
@@ -177,7 +178,6 @@ export const getRequestTrips = async (req, res) => {
       {
         $project: {
           _id: 1,
-          stops: "$tripStops",
           createdAt: 1,
           createdBy: 1,
           driver: 1,
@@ -185,6 +185,7 @@ export const getRequestTrips = async (req, res) => {
           currentRecipient: 1,
           tripType: 1,
           tripMode: 1,
+          stops: "$tripStops",
           status: 1,
         },
       },
@@ -195,7 +196,6 @@ export const getRequestTrips = async (req, res) => {
         message: "No trip requests found",
       });
     }
-    console.log("trip details", trips);
 
     res.status(200).json(trips);
   } catch (error) {
@@ -204,179 +204,182 @@ export const getRequestTrips = async (req, res) => {
     });
   }
 };
-// get particular request trip details
+// get particular request trip details only for drivers
 export const getParticularRequestedTripDetails = async (req, res) => {
   try {
     const { tripId } = req.params;
     const userId = req.userId;
-    // validate trip id
+
     if (!mongoose.Types.ObjectId.isValid(tripId)) {
       return errorResponse(res, "Invalid trip id");
     }
-    const trip = await tripRequests.aggregate(
-      [
-        // match trip
-        {
-          $match: {
-            _id: new mongoose.Types.ObjectId(tripId),
-          },
+
+    const userObjectId = new mongoose.Types.ObjectId(userId);
+
+    const trip = await tripRequests.aggregate([
+      { $match: { _id: new mongoose.Types.ObjectId(tripId) } },
+
+      // stops
+      {
+        $lookup: {
+          from: "tripstops",
+          localField: "_id",
+          foreignField: "tripRequestId",
+          as: "stops",
         },
-        // filter only current user receipts
-        {
-          $addFields: {
-            currentUserReceipts: {
-              $filter: {
-                input: "$recipients",
-                as: "receipt",
-                cond: {
-                  $eq: [{ $toString: "$$receipt.userId" }, userId.toString()],
-                },
+      },
+      { $unwind: "$stops" },
+      // just the role, nothing else - this is only for the branch decision below
+      {
+        $lookup: {
+          from: "users",
+          let: { uid: userObjectId },
+          pipeline: [
+            { $match: { $expr: { $eq: ["$_id", "$$uid"] } } },
+            { $project: { role: 1 } },
+          ],
+          as: "requestingUser",
+        },
+      },
+      // enrich every recipient - works whether caller is a recipient or not
+      {
+        $lookup: {
+          from: "users",
+          localField: "recipients.userId",
+          foreignField: "_id",
+          as: "receiptUsers",
+          pipeline: [{ $project: { Name: 1 } }],
+        },
+      },
+      {
+        $lookup: {
+          from: "drivers",
+          localField: "recipients.driverId",
+          foreignField: "_id",
+          as: "receiptDrivers",
+          pipeline: [{ $project: { name: 1, image: 1, MobileNumber: 1 } }],
+        },
+      },
+      {
+        $lookup: {
+          from: "vehicles",
+          localField: "recipients.vehicleId",
+          foreignField: "_id",
+          as: "receiptVehicles",
+          pipeline: [{ $project: { vehicleNumber: 1, vehicleModel: 1 } }],
+        },
+      },
+      // merge objects
+      {
+        $addFields: {
+          enrichedReceipts: {
+            $map: {
+              input: "$recipients",
+              as: "r",
+              in: {
+                $mergeObjects: [
+                  "$$r",
+                  {
+                    user: {
+                      $arrayElemAt: [
+                        {
+                          $filter: {
+                            input: "$receiptUsers",
+                            as: "u",
+                            cond: {
+                              $eq: [
+                                { $toString: "$$u._id" },
+                                { $toString: "$$r.userId" },
+                              ],
+                            },
+                          },
+                        },
+                        0,
+                      ],
+                    },
+                  },
+                  {
+                    driver: {
+                      $arrayElemAt: [
+                        {
+                          $filter: {
+                            input: "$receiptDrivers",
+                            as: "d",
+                            cond: {
+                              $eq: [
+                                { $toString: "$$d._id" },
+                                { $toString: "$$r.driverId" },
+                              ],
+                            },
+                          },
+                        },
+                        0,
+                      ],
+                    },
+                  },
+                  {
+                    vehicle: {
+                      $arrayElemAt: [
+                        {
+                          $filter: {
+                            input: "$receiptVehicles",
+                            as: "v",
+                            cond: {
+                              $eq: [
+                                { $toString: "$$v._id" },
+                                { $toString: "$$r.vehicleId" },
+                              ],
+                            },
+                          },
+                        },
+                        0,
+                      ],
+                    },
+                  },
+                ],
               },
             },
           },
+          requestingUserRole: { $arrayElemAt: ["$requestingUser.role", 0] },
         },
-        // lookup users
-        {
-          $lookup: {
-            from: "users",
-            localField: "currentUserReceipts.userId",
-            foreignField: "_id",
-            as: "receiptUsers",
-            pipeline: [
+      },
+
+      // driver -> only their own receipt. anyone else (owner/admin) -> everyone's
+      {
+        $addFields: {
+          users: {
+            $cond: [
+              { $eq: ["$requestingUserRole", ROLES.DRIVER] },
               {
-                $project: {
-                  Name: 1,
+                $filter: {
+                  input: "$enrichedReceipts",
+                  as: "r",
+                  cond: {
+                    $eq: [{ $toString: "$$r.userId" }, userId.toString()],
+                  },
                 },
               },
+              "$enrichedReceipts",
             ],
           },
         },
-        // lookup drivers
-        {
-          $lookup: {
-            from: "drivers",
-            localField: "currentUserReceipts.driverId",
-            foreignField: "_id",
-            as: "receiptDrivers",
-            pipeline: [
-              {
-                $project: {
-                  name: 1,
-                  image: 1,
-                  MobileNumber: 1,
-                },
-              },
-            ],
-          },
-        },
-        // lookup vehicles
-        {
-          $lookup: {
-            from: "vehicles",
-            localField: "currentUserReceipts.vehicleId",
-            foreignField: "_id",
-            as: "receiptVehicles",
-            pipeline: [
-              {
-                $project: {
-                  vehicleNumber: 1,
-                  vehicleModel: 1,
-                },
-              },
-            ],
-          },
-        },
-        // look up trips stop details
-        // merge user/driver/vehicle into receipt
-        {
-          $addFields: {
-            currentUserReceipts: {
-              $map: {
-                input: "$currentUserReceipts",
-                as: "receipt",
-                in: {
-                  $mergeObjects: [
-                    "$$receipt",
+      },
 
-                    // user
-                    {
-                      user: {
-                        $arrayElemAt: [
-                          {
-                            $filter: {
-                              input: "$receiptUsers",
-                              as: "user",
-                              cond: {
-                                $eq: [
-                                  { $toString: "$$user._id" },
-                                  { $toString: "$$receipt.userId" },
-                                ],
-                              },
-                            },
-                          },
-                          0,
-                        ],
-                      },
-                    },
-
-                    // driver
-                    {
-                      driver: {
-                        $arrayElemAt: [
-                          {
-                            $filter: {
-                              input: "$receiptDrivers",
-                              as: "driver",
-                              cond: {
-                                $eq: [
-                                  { $toString: "$$driver._id" },
-                                  { $toString: "$$receipt.driverId" },
-                                ],
-                              },
-                            },
-                          },
-                          0,
-                        ],
-                      },
-                    },
-
-                    // vehicle
-                    {
-                      vehicle: {
-                        $arrayElemAt: [
-                          {
-                            $filter: {
-                              input: "$receiptVehicles",
-                              as: "vehicle",
-                              cond: {
-                                $eq: [
-                                  { $toString: "$$vehicle._id" },
-                                  { $toString: "$$receipt.vehicleId" },
-                                ],
-                              },
-                            },
-                          },
-                          0,
-                        ],
-                      },
-                    },
-                  ],
-                },
-              },
-            },
-          },
+      {
+        $project: {
+          recipients: 0,
+          receiptUsers: 0,
+          receiptDrivers: 0,
+          receiptVehicles: 0,
+          enrichedReceipts: 0,
+          requestingUser: 0,
+          requestingUserRole: 0,
         },
-        // remove unnecessary arrays
-        {
-          $project: {
-            receiptUsers: 0,
-            receiptDrivers: 0,
-            receiptVehicles: 0,
-          },
-        },
-      ],
-      0
-    );
+      },
+    ]);
+
+    if (!trip[0]) return errorResponse(res, "Trip not found");
+
     successResponse(res, trip[0]);
   } catch (error) {
     console.log(error);
@@ -385,21 +388,22 @@ export const getParticularRequestedTripDetails = async (req, res) => {
 };
 // accept trip for  (indi) driver and owner its will create request to trip
 export const acceptTrip = async (req, res) => {
-  const session = await mongoose.startSession();
+  // const session = await mongoose.startSession();
   try {
-    session.startTransaction();
+    // session.startTransaction();
     const { recipients, tripId } = req.body;
     const userId = req.userId;
+    console.log("receipt", tripId);
     let formattedRecipients = [];
     // company owner reassigning driver/vehicle
     if (recipients?.length) {
       formattedRecipients = formatRecipients(recipients, userId);
     }
     // find request safely
-    const tripRequest = await tripRequests.findById(tripId).session(session);
+    const tripRequest = await tripRequests.findById(tripId);
     if (!tripRequest) {
-      await session.abortTransaction();
-      session.endSession();
+      // await session.abortTransaction();
+      // session.endSession();
       return errorResponse(res, "Trip request not found", 404);
     }
     // COMPANY FLOW owner assigns to driver
@@ -413,19 +417,13 @@ export const acceptTrip = async (req, res) => {
             recipients: formattedRecipients,
             type: TRIP_TYPE.INDEPENDENT,
           },
-        },
-        {
-          session,
         }
       );
 
-      await session.commitTransaction();
-      session.endSession();
       return successResponse(res, "Trip assigned to driver successfully");
     }
 
     // prevent duplicate accepts
-
     const updatedTripRequest = await tripRequests.findOneAndUpdate(
       {
         _id: tripId,
@@ -438,18 +436,17 @@ export const acceptTrip = async (req, res) => {
       },
       {
         new: true,
-        session,
+        // session,
       }
     );
 
     if (!updatedTripRequest) {
-      await session.abortTransaction();
+      // await session.abortTransaction();
 
-      session.endSession();
+      // session.endSession();
 
       return errorResponse(res, "Trip already accepted or unavailable", 400);
     }
-
     /**
      * find matched recipient
      */
@@ -458,9 +455,9 @@ export const acceptTrip = async (req, res) => {
     );
 
     if (!matchedRecipient) {
-      await session.abortTransaction();
-
-      session.endSession();
+      // await session.abortTransaction();
+      //
+      // session.endSession();
 
       return errorResponse(res, "Unauthorized trip access", 403);
     }
@@ -480,7 +477,7 @@ export const acceptTrip = async (req, res) => {
       currentStopIndex: 1,
     });
 
-    await newTrip.save({ session });
+    await newTrip.save();
 
     // attach tripId into TripStops
 
@@ -508,23 +505,23 @@ export const acceptTrip = async (req, res) => {
         $set: {
           "recipients.$.status": TRIP_STATUS.ACCEPTED,
         },
-      },
-      {
-        session,
       }
+      // {
+      //   session,
+      // }
     );
 
     // commit everythings
-    await session.commitTransaction();
-    session.endSession();
+    // await session.commitTransaction();
+    // session.endSession();
 
     return successResponse(res, "Trip accepted successfully");
   } catch (error) {
     console.log(error);
 
-    await session.abortTransaction();
+    // await session.abortTransaction();
 
-    session.endSession();
+    // session.endSession();
 
     return errorResponse(res, "Failed to accept trip request", 500);
   }
