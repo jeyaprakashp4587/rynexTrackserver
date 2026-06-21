@@ -5,7 +5,11 @@ import tripRequests from "../models/tripRequests.model.js";
 import TripStops from "../models/tripStops..model.js";
 import { Vehicle } from "../../../models/Vehicle.js";
 import { Driver } from "../../../models/Driver.js";
-import { TRIP_STATUS, TRIP_TYPE } from "../constants/trip.constants.js";
+import {
+  TRIP_STATUS,
+  TRIP_STOP_STATUS,
+  TRIP_TYPE,
+} from "../constants/trip.constants.js";
 
 import {
   getParticularTripPipeline,
@@ -27,22 +31,32 @@ export const getRequestTrips = async (userId) => {
   return tripRequests.aggregate(getRequestTripsPipeline(userId));
 };
 
-export const getParticularRequestedTrip = async (tripId, userId) => {
+export const getParticularRequestedTrip = async (tripRequestId, userId) => {
   const aggregate = tripRequests.aggregate(
-    getParticularTripPipeline(tripId, userId)
+    getParticularTripPipeline(tripRequestId, userId)
   );
   return aggregate;
 };
 
 // trip creation ------------ service repo
-export const findTripRequestById = async (tripId) => {
-  return tripRequests.findById(tripId);
+export const findTripRequestById = async (tripRequestId) => {
+  return tripRequests.findById(tripRequestId);
 };
+
+export const findPendingTripRequest = async (tripRequestId, userId) => {
+  return tripRequests.findOne({
+    _id: tripRequestId,
+    status: TRIP_STATUS.PENDING,
+    "recipients.userId": userId,
+  });
+};
+
 // re make to request trip
-export const assignTripToDriver = async ({ tripId, recipients }) => {
+export const assignTripToDriver = async ({ tripRequestId, recipients }) => {
+  // update the trip request
   return tripRequests.updateOne(
     {
-      _id: tripId,
+      _id: tripRequestId,
     },
     {
       $set: {
@@ -52,55 +66,108 @@ export const assignTripToDriver = async ({ tripId, recipients }) => {
     }
   );
 };
+
 // acceptace trip for driver
-export const acceptTripRequest = async (tripId, userId, currentUser) => {
-  if (!currentUser) {
-    throw new Error("Recipient not found");
-  }
-
-  const [trip, vehicle, driver, newtrip] = await Promise.all([
-    tripRequests.findOneAndUpdate(
-      {
-        _id: tripId,
-        status: TRIP_STATUS.PENDING,
-        "recipients.userId": userId,
+export const updateTripRequestAccepted = async (tripRequestId, userId) => {
+  return tripRequests.findOneAndUpdate(
+    {
+      _id: tripRequestId,
+      status: TRIP_STATUS.PENDING,
+      "recipients.userId": userId,
+    },
+    {
+      $set: {
+        status: TRIP_STATUS.ACCEPTED,
+        "recipients.$.status": TRIP_STATUS.ACCEPTED,
       },
-      {
-        $set: {
-          status: TRIP_STATUS.ACCEPTED,
-          "recipients.$.status": TRIP_STATUS.ACCEPTED,
+    },
+    {
+      new: true,
+    }
+  );
+};
+
+export const findTripByRequestId = async (tripRequestId) => {
+  return trip.findOne({
+    tripRequestId,
+  });
+};
+
+export const createTrip = async (payload) => {
+  return trip.create(payload);
+};
+
+export const addRecipientToTrip = async (tripId, recipientData) => {
+  return trip.updateOne(
+    {
+      _id: tripId,
+      "recipients.userId": {
+        $ne: recipientData.userId,
+      },
+    },
+    {
+      $push: {
+        recipients: recipientData,
+      },
+    }
+  );
+};
+
+export const updateTripStopsRecipients = async (
+  tripRequestId,
+  tripId,
+  userId
+) => {
+  return TripStops.updateOne(
+    {
+      tripRequestId,
+    },
+    {
+      $set: {
+        tripId,
+      },
+      $push: {
+        "stops.$[].recipientsMeta": {
+          userId,
+          status: TRIP_STOP_STATUS.PENDING,
+          otp: "",
+          proofPhotos: [],
+          arrivedAt: null,
+          completedAt: null,
         },
       },
-      {
-        new: true,
-      }
-    ),
+    }
+  );
+};
 
-    Vehicle.updateOne(
-      {
-        _id: currentUser.vehicleId,
+export const updateVehicleAvailability = async (
+  vehicleId,
+  currentlyAvailable
+) => {
+  return Vehicle.updateOne(
+    {
+      _id: vehicleId,
+    },
+    {
+      $set: {
+        currentlyAvailable,
       },
-      {
-        $set: {
-          currentlyAvailable: false,
-        },
-      }
-    ),
+    }
+  );
+};
 
-    Driver.updateOne(
-      {
-        _id: currentUser.driverId,
+export const updateDriverAvailability = async (
+  driverId,
+  currentlyAvailable
+) => {
+  return Driver.updateOne(
+    {
+      _id: driverId,
+    },
+    {
+      $set: {
+        currentlyAvailable,
       },
-      {
-        $set: {
-          currentlyAvailable: false,
-        },
-      }
-    ),
-  ]);
-  return {
-    trip,
-    vehicle,
-    driver,
-  };
+    }
+  );
 };

@@ -37,9 +37,10 @@ export const getParticularRequestedTrip = async (tripId, userId) => {
   return trip[0];
 };
 
+// services/trip.service.js
+
 export const acceptTrip = async ({ body, userId }) => {
   const { recipients, tripId } = body;
-  console.log("Accepting trip:", tripId, "for user:", userId);
 
   let formattedRecipients = [];
 
@@ -48,12 +49,12 @@ export const acceptTrip = async ({ body, userId }) => {
   }
 
   const tripRequest = await tripRepo.findTripRequestById(tripId);
-  // console.log("trip", tripRequest);
 
   if (!tripRequest) {
     throw new Error("Trip request not found");
   }
-  // this block for owner reassign the request to other receipts owner
+
+  // COMPANY FLOW
   if (tripRequest.type === TRIP_TYPE.COMPANY) {
     await tripRepo.assignTripToDriver({
       tripId,
@@ -64,21 +65,64 @@ export const acceptTrip = async ({ body, userId }) => {
       message: "Trip assigned successfully",
     };
   }
-  // update trip status _ mean indi driver accept
+
+  // DRIVER ACCEPT FLOW
   const currentUser = recipients.find(
     (user) => user.userId.toString() === userId.toString()
   );
-  const updatedTrip = await tripRepo.acceptTripRequest(
-    tripId,
-    userId,
-    currentUser
-  );
 
-  if (!updatedTrip) {
+  if (!currentUser) {
+    throw new Error("Recipient not found");
+  }
+
+  // validate pending request
+  const pendingTrip = await tripRepo.findPendingTripRequest(tripId, userId);
+
+  if (!pendingTrip) {
     throw new Error("Trip already accepted");
   }
 
+  // update request accepted
+  const updatedRequest = await tripRepo.updateTripRequestAccepted(
+    tripId,
+    userId
+  );
+
+  // find/create trip
+  let existingTrip = await tripRepo.findTripByRequestId(tripId);
+
+  if (!existingTrip) {
+    existingTrip = await tripRepo.createTrip({
+      tripRequestId: tripId,
+      createdBy: updatedRequest.createdBy,
+      tripMode: updatedRequest.tripMode,
+      status: TRIP_STATUS.ACCEPTED,
+      recipients: [],
+    });
+  }
+
+  // recipient meta
+  const recipientData = {
+    userId,
+    driverId: currentUser.driverId,
+    vehicleId: currentUser.vehicleId,
+    assignedBy: currentUser.assignedBy,
+    assignedAt: new Date(),
+  };
+
+  // parallel updates
+  await Promise.all([
+    tripRepo.addRecipientToTrip(existingTrip._id, recipientData),
+
+    tripRepo.updateTripStopsRecipients(tripId, existingTrip._id, userId),
+
+    tripRepo.updateVehicleAvailability(currentUser.vehicleId, false),
+
+    tripRepo.updateDriverAvailability(currentUser.driverId, false),
+  ]);
+
   return {
     message: "Trip accepted successfully",
+    trip: existingTrip,
   };
 };
