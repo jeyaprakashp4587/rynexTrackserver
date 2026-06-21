@@ -77,5 +77,4 @@ const tripSchema = new mongoose.Schema(
   }
 );
 
-const trip = DB1.model("Trip", tripSchema);
-export { trip };
+export const trip = DB1.model("Trip", tripSchema);

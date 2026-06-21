@@ -155,6 +155,8 @@ export const getRequestTripsPipeline = (userId) => {
 };
 
 export const getParticularTripPipeline = (tripId, userId) => {
+  // console.log("trip id from pipeline", tripId, userId);
+  const userObjectId = new mongoose.Types.ObjectId(userId);
   return [
     { $match: { _id: new mongoose.Types.ObjectId(tripId) } },
 

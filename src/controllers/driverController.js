@@ -9,8 +9,6 @@ export const createDriver = async (req, res) => {
     const { companyId, driverForm } = req.body;
     const { name, MobileNumber, image, vehicleId } = driverForm;
 
-    console.log(name, MobileNumber, image, vehicleId, companyId);
-
     if (!name || !MobileNumber) {
       errorResponse({
         statusCode: 400,
@@ -38,7 +36,7 @@ export const createDriver = async (req, res) => {
       res,
       statusCode: 201,
       message: "Driver created successfully",
-      data: { driver: newDriver },
+      data: newDriver,
     });
     return;
   } catch (error) {
@@ -103,7 +101,7 @@ export const getMyCompanyDrivers = async (req, res) => {
       res,
       statusCode: 200,
       message: "Fetched drivers successfully",
-      data: { drivers: company.drivers },
+      data: company.drivers,
     });
   } catch (error) {
     return errorResponse({

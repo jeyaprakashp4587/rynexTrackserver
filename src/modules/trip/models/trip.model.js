@@ -39,27 +39,37 @@ const tripSchema = new mongoose.Schema(
       ref: "User",
       required: true,
     },
+    recipients: [
+      {
+        userId: {
+          type: mongoose.Schema.Types.ObjectId,
+          required: true,
+        },
 
-    customer: {
-      type: mongoose.Schema.Types.ObjectId,
-      ref: "User",
-      required: true,
-    },
+        driverId: {
+          type: mongoose.Schema.Types.ObjectId,
+          ref: "Driver",
+        },
+        currentStopIndex: {
+          type: Number,
+          default: 0,
+        },
+        vehicleId: {
+          type: mongoose.Schema.Types.ObjectId,
+          ref: "Vehicle",
+        },
 
-    allocatedDriver: {
-      type: mongoose.Schema.Types.ObjectId,
-      ref: "Driver",
-    },
+        assignedBy: {
+          type: mongoose.Schema.Types.ObjectId,
+          ref: "User",
+        },
 
-    allocatedVehicle: {
-      type: mongoose.Schema.Types.ObjectId,
-      ref: "Vehicle",
-    },
-
-    currentStopIndex: {
-      type: Number,
-      default: 0,
-    },
+        assignedAt: {
+          type: Date,
+          default: Date.now,
+        },
+      },
+    ],
 
     totalDistanceKm: Number,
     totalDurationMin: Number,
@@ -77,5 +87,4 @@ const tripSchema = new mongoose.Schema(
   }
 );
 
-const trip = DB1.model("Trip", tripSchema);
-export default trip;
+export const trip = DB1.model("Trip", tripSchema);

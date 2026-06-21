@@ -52,10 +52,12 @@ export const getRequestTrips = async (req, res) => {
 export const getParticularRequestedTripDetails = async (req, res) => {
   try {
     const { tripId } = req.params;
+
     const trip = await tripService.getParticularRequestedTrip(
       tripId,
       req.userId
     );
+    console.log("trip ", trip);
 
     return successResponse({
       res,
@@ -82,5 +84,28 @@ export const acceptTrip = async (req, res) => {
     return successResponse({ res, statusCode: 200, message: result.message });
   } catch (error) {
     return errorResponse({ res, statusCode: 500, message: error.message });
+  }
+};
+
+// get current particular trip details
+export const getCurrentTripDetails = async (req, res) => {
+  try {
+    const { tripId } = req.params;
+
+    const trip = await tripService.getCurrentTripDetails(tripId, req.userId);
+    console.log("trip ", trip);
+
+    return successResponse({
+      res,
+      statusCode: 200,
+      message: "Trip fetched successfully",
+      data: trip,
+    });
+  } catch (error) {
+    return errorResponse({
+      res,
+      statusCode: 500,
+      message: "Failed to get trip",
+    });
   }
 };

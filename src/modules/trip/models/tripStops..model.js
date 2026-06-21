@@ -16,17 +16,6 @@ const stopSchema = new mongoose.Schema(
       enum: [TRIP_STOP_TYPE.PICKUP, TRIP_STOP_TYPE.DROP],
       required: true,
     },
-    status: {
-      type: String,
-      enum: [
-        TRIP_STOP_STATUS.PENDING,
-        TRIP_STOP_STATUS.ARRIVED,
-        TRIP_STOP_STATUS.COMPLETED,
-        TRIP_STOP_STATUS.FAILED,
-        TRIP_STOP_STATUS.SKIPPED,
-      ],
-      default: TRIP_STOP_STATUS.PENDING,
-    },
     locationName: {
       type: String,
       default: "",
@@ -42,28 +31,48 @@ const stopSchema = new mongoose.Schema(
         required: true,
       },
     },
-    contactPerson: {
-      type: String,
-      default: "",
-    },
-    contactPhone: {
-      type: String,
-      default: "",
-    },
-    notes: {
-      type: String,
-      default: "",
-    },
-    otp: {
-      type: String,
-      default: "",
-    },
-    proofPhotos: {
-      type: [String],
-      default: [],
-    },
-    arrivedAt: Date,
-    completedAt: Date,
+    // set trip stop meta data for recipients (each driver)
+    recipientsMeta: [
+      {
+        recipientId: {
+          type: mongoose.Schema.Types.ObjectId,
+          required: true,
+        },
+        status: {
+          type: String,
+          enum: [
+            TRIP_STOP_STATUS.PENDING,
+            TRIP_STOP_STATUS.ARRIVED,
+            TRIP_STOP_STATUS.COMPLETED,
+            TRIP_STOP_STATUS.FAILED,
+            TRIP_STOP_STATUS.SKIPPED,
+          ],
+          default: TRIP_STOP_STATUS.PENDING,
+        },
+        contactPerson: {
+          type: String,
+          default: "",
+        },
+        contactPhone: {
+          type: String,
+          default: "",
+        },
+        notes: {
+          type: String,
+          default: "",
+        },
+        otp: {
+          type: String,
+          default: "",
+        },
+        proofPhotos: {
+          type: [String],
+          default: [],
+        },
+        arrivedAt: Date,
+        completedAt: Date,
+      },
+    ],
   },
   {
     _id: true,
