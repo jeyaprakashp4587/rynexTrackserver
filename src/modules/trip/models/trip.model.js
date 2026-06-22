@@ -9,7 +9,7 @@ const tripSchema = new mongoose.Schema(
       ref: "TripRequests",
     },
 
-    tripMode: {
+    tripStopMode: {
       type: String,
       enum: [
         TRIP_MODE.DISTRIBUTION,

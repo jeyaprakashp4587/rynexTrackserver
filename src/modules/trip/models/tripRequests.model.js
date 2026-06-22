@@ -70,7 +70,7 @@ const tripRequests = new mongoose.Schema({
     enum: [TRIP_TYPE.COMPANY, TRIP_TYPE.INDEPENDENT],
     default: TRIP_TYPE.INDEPENDENT,
   },
-  tripMode: {
+  tripStopMode: {
     type: String,
     enum: [
       TRIP_MODE.DISTRIBUTION,
