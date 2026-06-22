@@ -36,7 +36,7 @@ export const getParticularRequestedTrip = async (tripRequestId, userId) => {
   return aggregate;
 };
 
-// trip creation ------------ service repo
+// trip creation ------------ service repo ---
 export const findPendingTripRequest = async (tripRequestId, userId) => {
   return tripRequests.findOne({
     _id: tripRequestId,
@@ -114,7 +114,7 @@ export const addRecipientToTrip = async ({ tripId, recipientData }) => {
 export const updateTripStopsRecipients = async ({
   tripRequestId,
   tripId,
-  userId,
+  recipientId,
 }) => {
   return TripStops.updateOne(
     {
@@ -126,7 +126,7 @@ export const updateTripStopsRecipients = async ({
       },
       $push: {
         "stops.$[].recipientsMeta": {
-          userId,
+          recipientId,
         },
       },
     }
@@ -163,4 +163,29 @@ export const updateDriverAvailability = async ({
       },
     }
   );
+};
+// trip acceptance allocate end
+
+export const findAcceptedTripByRecipientId = async (userId) => {
+  return trip.findOne(
+    {
+      status: TRIP_STATUS.ACCEPTED,
+      recipients: {
+        $elemMatch: {
+          userId,
+          status: TRIP_STATUS.ACCEPTED,
+        },
+      },
+    },
+    {
+      "recipients.$": 1,
+    }
+  );
+};
+
+export const getStopsByRecipientId = async (tripId, recipientId) => {
+  return TripStops.find({
+    tripId,
+    "stops.recipientsMeta.recipientId": recipientId,
+  });
 };

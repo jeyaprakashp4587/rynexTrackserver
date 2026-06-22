@@ -43,34 +43,41 @@ const tripSchema = new mongoose.Schema(
       {
         userId: {
           type: mongoose.Schema.Types.ObjectId,
-          required: true,
         },
-
         driverId: {
           type: mongoose.Schema.Types.ObjectId,
-          ref: "Driver",
         },
+
+        status: {
+          type: String,
+          enum: [
+            TRIP_STATUS.PENDING,
+            TRIP_STATUS.ACCEPTED,
+            TRIP_STATUS.REJECTED,
+            TRIP_STATUS.CANCELLED,
+            TRIP_STATUS.COMPLETED,
+            TRIP_STATUS.EXPIRED,
+          ],
+          default: TRIP_STATUS.PENDING,
+        },
+
+        acceptedAt: Date,
+        rejectedAt: Date,
+        cancelledAt: Date,
+        completedAt: Date,
+
+        cancelReason: String,
+
         currentStopIndex: {
           type: Number,
           default: 0,
         },
-        vehicleId: {
-          type: mongoose.Schema.Types.ObjectId,
-          ref: "Vehicle",
-        },
 
-        assignedBy: {
-          type: mongoose.Schema.Types.ObjectId,
-          ref: "User",
-        },
-
-        assignedAt: {
-          type: Date,
-          default: Date.now,
-        },
+        vehicleId: {},
+        assignedBy: {},
+        assignedAt: {},
       },
     ],
-
     totalDistanceKm: Number,
     totalDurationMin: Number,
 

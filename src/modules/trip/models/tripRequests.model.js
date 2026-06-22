@@ -7,11 +7,13 @@ import {
 } from "../constants/trip.constants.js";
 
 const tripRequests = new mongoose.Schema({
-  createdBy: {
-    type: mongoose.Schema.Types.ObjectId,
-    ref: "User",
-    required: true,
-  },
+  createdBy: [
+    {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "User",
+      required: true,
+    },
+  ],
 
   recipients: [
     {

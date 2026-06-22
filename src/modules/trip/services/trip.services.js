@@ -12,7 +12,7 @@ export const requestTrip = async ({ body, userId }) => {
   const formattedRecipients = formatRecipients(recipients, userId);
 
   const tripRequest = await tripRepo.createTripRequest({
-    createdBy: userId,
+    createdBy: [userId],
     tripType: bookingType,
     tripMode,
     recipients: formattedRecipients,
@@ -129,6 +129,7 @@ export const acceptTrip = async ({ body, userId }) => {
       vehicleId: currentUser.vehicleId,
       assignedBy: currentUser.assignedBy,
       assignedAt: new Date(),
+      status: TRIP_STATUS.ACCEPTED,
     };
 
     // ADD RECIPIENT TO TRIP
@@ -138,15 +139,13 @@ export const acceptTrip = async ({ body, userId }) => {
       // session,
     });
     // console.log("add receipt to trip passed");
-
     // UPDATE STOPS
-    const newTripStop = await tripRepo.updateTripStopsRecipients({
+    await tripRepo.updateTripStopsRecipients({
       tripRequestId: tripId,
       tripId: existingTrip._id,
-      userId,
+      recipientId: existingTrip?.recipients[0]?._id,
       // session,
     });
-    console.log("new trip stop", newTripStop);
 
     // LOCK VEHICLE
     await tripRepo.updateVehicleAvailability({
@@ -176,5 +175,19 @@ export const acceptTrip = async ({ body, userId }) => {
     throw err;
   } finally {
     // session.endSession();
+  }
+};
+
+// get current trip details, for only drivers
+export const getCurrentTripDetails = async (userId) => {
+  try {
+    const trip = await tripRepo.findAcceptedTripByRecipientId(userId);
+    const tripStop = await tripRepo.getStopsByRecipientId(
+      trip._id,
+      trip.recipients[0]._id
+    );
+    return { trip, tripStop };
+  } catch (error) {
+    throw error;
   }
 };

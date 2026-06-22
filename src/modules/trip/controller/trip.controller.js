@@ -87,7 +87,7 @@ export const acceptTrip = async (req, res) => {
   }
 };
 
-// get current particular trip details
+// get current particular trip details for driver only
 export const getCurrentTripDetails = async (req, res) => {
   try {
     const { tripId } = req.params;
@@ -109,3 +109,23 @@ export const getCurrentTripDetails = async (req, res) => {
     });
   }
 };
+
+// get created trip requests or trip , this for users, and owners
+// export const getCreatedTripRequests = async (req, res) => {
+//   try {
+//     const trips = await tripService.getCreatedTripRequests(req.userId);
+//     // console.log("trips", trips);
+//     return successResponse({
+//       res,
+//       data: trips,
+//       message: "Trips fetched successfully",
+//       statusCode: 200,
+//     });
+//   } catch (error) {
+//     return errorResponse({
+//       res,
+//       statusCode: 500,
+//       message: "Failed to get trips",
+//     });
+//   }
+// };
