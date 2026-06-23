@@ -90,11 +90,7 @@ export const acceptTrip = async (req, res) => {
 // get current particular trip details for driver only
 export const getCurrentTripDetails = async (req, res) => {
   try {
-    const { tripId } = req.params;
-
-    const trip = await tripService.getCurrentTripDetails(tripId, req.userId);
-    console.log("trip ", trip);
-
+    const trip = await tripService.getCurrentTripDetails(req.userId);
     return successResponse({
       res,
       statusCode: 200,

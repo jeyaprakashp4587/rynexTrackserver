@@ -119,11 +119,13 @@ export const acceptTrip = async ({ body, userId }) => {
 
       // mongoose create([]) returns array
       existingTrip = existingTrip[0];
-      console.log("trip created ", existingTrip);
+      // console.log("trip created ", existingTrip);
     }
 
-    // RECIPIENT META
+    const recipientId = new mongoose.Types.ObjectId();
+
     const recipientData = {
+      _id: recipientId,
       userId,
       driverId: currentUser.driverId,
       vehicleId: currentUser.vehicleId,
@@ -131,7 +133,6 @@ export const acceptTrip = async ({ body, userId }) => {
       assignedAt: new Date(),
       status: TRIP_STATUS.ACCEPTED,
     };
-
     // ADD RECIPIENT TO TRIP
     await tripRepo.addRecipientToTrip({
       tripId: existingTrip._id,
@@ -143,7 +144,7 @@ export const acceptTrip = async ({ body, userId }) => {
     await tripRepo.updateTripStopsRecipients({
       tripRequestId: tripId,
       tripId: existingTrip._id,
-      recipientId: existingTrip?.recipients[0]?._id,
+      recipientId: recipientId,
       // session,
     });
 
@@ -186,7 +187,8 @@ export const getCurrentTripDetails = async (userId) => {
       trip._id,
       trip.recipients[0]._id
     );
-    return { trip, tripStop };
+
+    return { trip, tripStop: tripStop[0] };
   } catch (error) {
     throw error;
   }

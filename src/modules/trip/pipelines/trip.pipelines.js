@@ -319,3 +319,74 @@ export const getParticularTripPipeline = (tripId, userId) => {
     },
   ];
 };
+
+// get accept driver current trip detsil (driver only)
+export const getStopsByRecipientIdPipeLine = (tripId, recipientId) => {
+  return [
+    {
+      $match: {
+        tripId: new mongoose.Types.ObjectId(tripId),
+      },
+    },
+    // filter stops
+    {
+      $project: {
+        tripId: 1,
+        tripRequestId: 1,
+
+        stops: {
+          $map: {
+            input: {
+              $filter: {
+                input: "$stops",
+                as: "stop",
+                cond: {
+                  $gt: [
+                    {
+                      $size: {
+                        $filter: {
+                          input: "$$stop.recipientsMeta",
+                          as: "meta",
+                          cond: {
+                            $eq: [
+                              "$$meta.recipientId",
+                              new mongoose.Types.ObjectId(recipientId),
+                            ],
+                          },
+                        },
+                      },
+                    },
+                    0,
+                  ],
+                },
+              },
+            },
+
+            as: "stop",
+
+            in: {
+              _id: "$$stop._id",
+              sequence: "$$stop.sequence",
+              stopType: "$$stop.stopType",
+              locationName: "$$stop.locationName",
+              coords: "$$stop.coords",
+
+              recipientsMeta: {
+                $filter: {
+                  input: "$$stop.recipientsMeta",
+                  as: "meta",
+                  cond: {
+                    $eq: [
+                      "$$meta.recipientId",
+                      new mongoose.Types.ObjectId(recipientId),
+                    ],
+                  },
+                },
+              },
+            },
+          },
+        },
+      },
+    },
+  ];
+};

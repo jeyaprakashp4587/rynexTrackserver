@@ -12,6 +12,7 @@ import {
 import {
   getParticularTripPipeline,
   getRequestTripsPipeline,
+  getStopsByRecipientIdPipeLine,
 } from "../pipelines/trip.pipelines.js";
 
 import { trip } from "../models/trip.model.js";
@@ -107,7 +108,8 @@ export const addRecipientToTrip = async ({ tripId, recipientData }) => {
       $push: {
         recipients: recipientData,
       },
-    }
+    },
+    { new: true }
   );
 };
 
@@ -116,6 +118,8 @@ export const updateTripStopsRecipients = async ({
   tripId,
   recipientId,
 }) => {
+  // console.log("receipts id", recipientId);
+
   return TripStops.updateOne(
     {
       tripRequestId,
@@ -129,7 +133,8 @@ export const updateTripStopsRecipients = async ({
           recipientId,
         },
       },
-    }
+    },
+    { new: true }
   );
 };
 
@@ -167,8 +172,8 @@ export const updateDriverAvailability = async ({
 // trip acceptance allocate end
 
 export const findAcceptedTripByRecipientId = async (userId) => {
-  return trip.findOne(
-    {
+  return trip
+    .findOne({
       status: TRIP_STATUS.ACCEPTED,
       recipients: {
         $elemMatch: {
@@ -176,16 +181,22 @@ export const findAcceptedTripByRecipientId = async (userId) => {
           status: TRIP_STATUS.ACCEPTED,
         },
       },
-    },
-    {
-      "recipients.$": 1,
-    }
-  );
+    })
+    .select({
+      tripRequestId: 1,
+      createdBy: 1,
+      status: 1,
+      tripStopMode: 1,
+      recipients: {
+        $elemMatch: {
+          userId,
+          status: TRIP_STATUS.ACCEPTED,
+        },
+      },
+    });
 };
-
 export const getStopsByRecipientId = async (tripId, recipientId) => {
-  return TripStops.find({
-    tripId,
-    "stops.recipientsMeta.recipientId": recipientId,
-  });
+  return TripStops.aggregate(
+    getStopsByRecipientIdPipeLine(tripId, recipientId)
+  );
 };
