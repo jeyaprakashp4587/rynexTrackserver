@@ -321,6 +321,140 @@ export const getParticularTripPipeline = (tripId, userId) => {
 };
 
 // get accept driver current trip detsil (driver only)
+export const getfindAcceptedTripByRecipientPipeline = (recipientId) => {
+  return [
+    // Find accepted trip
+    {
+      $match: {
+        status: TRIP_STATUS.ACCEPTED,
+      },
+    },
+
+    // Split recipients array
+    {
+      $unwind: "$recipients",
+    },
+
+    // Filter only matched recipient
+    {
+      $match: {
+        "recipients.userId": new mongoose.Types.ObjectId(recipientId),
+        "recipients.status": TRIP_STATUS.ACCEPTED,
+      },
+    },
+
+    // USER LOOKUP
+    {
+      $lookup: {
+        from: "users",
+        localField: "recipients.userId",
+        foreignField: "_id",
+        as: "user",
+      },
+    },
+
+    {
+      $unwind: {
+        path: "$user",
+        preserveNullAndEmptyArrays: true,
+      },
+    },
+
+    // DRIVER LOOKUP
+    {
+      $lookup: {
+        from: "drivers",
+        localField: "recipients.driverId",
+        foreignField: "_id",
+        as: "driver",
+      },
+    },
+
+    {
+      $unwind: {
+        path: "$driver",
+        preserveNullAndEmptyArrays: true,
+      },
+    },
+
+    // VEHICLE LOOKUP
+    {
+      $lookup: {
+        from: "vehicles",
+        localField: "recipients.vehicleId",
+        foreignField: "_id",
+        as: "vehicle",
+      },
+    },
+
+    {
+      $unwind: {
+        path: "$vehicle",
+        preserveNullAndEmptyArrays: true,
+      },
+    },
+
+    // GROUP BACK TO SINGLE TRIP
+    {
+      $group: {
+        _id: "$_id",
+
+        tripRequestId: {
+          $first: "$tripRequestId",
+        },
+
+        createdBy: {
+          $first: "$createdBy",
+        },
+
+        status: {
+          $first: "$status",
+        },
+
+        tripStopMode: {
+          $first: "$tripStopMode",
+        },
+
+        users: {
+          $push: {
+            recipientId: "$recipients._id",
+            status: "$recipients.status",
+            currentStopIndex: "$recipients.currentStopIndex",
+            user: {
+              _id: "$user._id",
+              Name: "$user.Name",
+              MobileNumber: "$user.MobileNumber",
+            },
+
+            driver: {
+              _id: "$driver._id",
+              name: "$driver.name",
+            },
+
+            vehicle: {
+              _id: "$vehicle._id",
+              vehicleNumber: "$vehicle.vehicleNumber",
+              vehicleModel: "$vehicle.vehicleModel",
+            },
+          },
+        },
+      },
+    },
+
+    // Optional clean response
+    {
+      $project: {
+        _id: 1,
+        tripRequestId: 1,
+        createdBy: 1,
+        status: 1,
+        tripStopMode: 1,
+        users: 1,
+      },
+    },
+  ];
+};
+
 export const getStopsByRecipientIdPipeLine = (tripId, recipientId) => {
   return [
     {

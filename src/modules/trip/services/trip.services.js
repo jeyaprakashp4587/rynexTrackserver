@@ -183,10 +183,13 @@ export const acceptTrip = async ({ body, userId }) => {
 export const getCurrentTripDetails = async (userId) => {
   try {
     const trip = await tripRepo.findAcceptedTripByRecipientId(userId);
+    // console.log("trip details", trip);
+
     const tripStop = await tripRepo.getStopsByRecipientId(
-      trip._id,
-      trip.recipients[0]._id
+      trip[0]._id,
+      trip[0].users[0].recipientId
     );
+    // console.log("trip stop", tripStop);
 
     return { trip, tripStop: tripStop[0] };
   } catch (error) {

@@ -10,6 +10,7 @@ import {
 } from "../constants/trip.constants.js";
 
 import {
+  getfindAcceptedTripByRecipientPipeline,
   getParticularTripPipeline,
   getRequestTripsPipeline,
   getStopsByRecipientIdPipeLine,
@@ -169,32 +170,11 @@ export const updateDriverAvailability = async ({
     }
   );
 };
-// trip acceptance allocate end
-
+// trip acceptance allocate end driver only
 export const findAcceptedTripByRecipientId = async (userId) => {
-  return trip
-    .findOne({
-      status: TRIP_STATUS.ACCEPTED,
-      recipients: {
-        $elemMatch: {
-          userId,
-          status: TRIP_STATUS.ACCEPTED,
-        },
-      },
-    })
-    .select({
-      tripRequestId: 1,
-      createdBy: 1,
-      status: 1,
-      tripStopMode: 1,
-      recipients: {
-        $elemMatch: {
-          userId,
-          status: TRIP_STATUS.ACCEPTED,
-        },
-      },
-    });
+  return trip.aggregate(getfindAcceptedTripByRecipientPipeline(userId));
 };
+// driver only
 export const getStopsByRecipientId = async (tripId, recipientId) => {
   return TripStops.aggregate(
     getStopsByRecipientIdPipeLine(tripId, recipientId)
