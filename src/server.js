@@ -15,6 +15,8 @@ const startServer = async () => {
     await DB1;
     // init socket
     const io = initSocket(server);
+    // console.log("socket initialized");
+
     socketManager(io);
     // close socket
     server.listen(PORT, () => {
