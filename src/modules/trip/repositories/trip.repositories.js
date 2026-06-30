@@ -119,8 +119,6 @@ export const updateTripStopsRecipients = async ({
   tripId,
   recipientId,
 }) => {
-  // console.log("receipts id", recipientId);
-
   return TripStops.updateOne(
     {
       tripRequestId,
@@ -178,5 +176,45 @@ export const findAcceptedTripByRecipientId = async (userId) => {
 export const getStopsByRecipientId = async (tripId, recipientId) => {
   return TripStops.aggregate(
     getStopsByRecipientIdPipeLine(tripId, recipientId)
+  );
+};
+
+// get trip receipts
+export const findTripRecipientId = async (tripId, userId) => {
+  const tripData = await trip.findOne(
+    {
+      _id: tripId,
+      recipients: {
+        $elemMatch: { userId },
+      },
+    },
+    {
+      "recipients.$": 1,
+    }
+  );
+
+  return tripData?.recipients?.[0]?._id || null;
+};
+
+export const updateTripStopStatus = async (
+  tripId,
+  stopSequence,
+  proofPhotos,
+  recipientId,
+  status
+) => {
+  return TripStops.updateOne(
+    {
+      tripId,
+      "stops.sequence": stopSequence,
+      "stops.recipientsMeta.recipientId": recipientId,
+    },
+    {
+      $set: {
+        "stops.$.proofPhotos": proofPhotos,
+        "stops.$.status": status,
+      },
+    },
+    { new: true }
   );
 };

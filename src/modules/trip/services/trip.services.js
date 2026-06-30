@@ -196,3 +196,29 @@ export const getCurrentTripDetails = async (userId) => {
     throw error;
   }
 };
+
+export const updateTripStop = async ({ body, userId }) => {
+  try {
+    const { tripId, stopSequence, podImage, status } = body;
+    // Find the trip by and finc receipts and reutthat receipts ids
+    const recipientId = await tripRepo.findTripRecipientId(tripId, userId);
+    if (!recipientId) {
+      throw new Error("Trip not found");
+    }
+
+    // Mark the trip stop as updated
+    await tripRepo.updateTripStopStatus(
+      tripId,
+      stopSequence,
+      podImage,
+      recipientId,
+      status
+    );
+
+    return {
+      message: "Trip stop updated successfully",
+    };
+  } catch (error) {
+    throw error;
+  }
+};

@@ -125,3 +125,25 @@ export const getCurrentTripDetails = async (req, res) => {
 //     });
 //   }
 // };
+
+// complete and make as arrived only for drivers
+export const updateTripStop = async (req, res) => {
+  try {
+    const result = await tripService.updateTripStop({
+      body: req.body,
+      userId: req.userId,
+    });
+
+    return successResponse({
+      res,
+      statusCode: 200,
+      message: result.message,
+    });
+  } catch (error) {
+    return errorResponse({
+      res,
+      statusCode: 500,
+      message: error.message,
+    });
+  }
+};

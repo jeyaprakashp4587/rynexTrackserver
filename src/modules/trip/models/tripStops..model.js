@@ -69,8 +69,14 @@ const stopSchema = new mongoose.Schema(
           type: [String],
           default: [],
         },
-        arrivedAt: Date,
-        completedAt: Date,
+        arrivedAt: {
+          type: Date,
+          default: Date.now,
+        },
+        completedAt: {
+          type: Date,
+          default: Date.now,
+        },
       },
     ],
   },
