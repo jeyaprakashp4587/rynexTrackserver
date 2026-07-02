@@ -1,5 +1,5 @@
-import { redis } from "../../../config/redis.config.js";
+import { geoService } from "../../../Redis/services/geo.service.js";
 
 export const saveDriverLocation = async ({ driverId, longitude, latitude }) => {
-  await redis.geoadd("drivers_live_locations", longitude, latitude, driverId);
+  await geoService.updateDriverLocation({ driverId, longitude, latitude });
 };

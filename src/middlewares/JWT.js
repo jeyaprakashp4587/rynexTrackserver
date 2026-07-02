@@ -19,7 +19,7 @@ export const createRefreshToken = async (user) => {
   const refreshToken = jwt.sign(
     { userId: user.id || user._id, role: user.role },
     process.env.JWT_REFRESH_TOKEN_SECRET,
-    { expiresIn: "7d" }
+    { expiresIn: "14d" }
   );
   return refreshToken;
 };

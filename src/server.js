@@ -5,6 +5,7 @@ import { DB1 } from "./config/db.js";
 import { initializeFirebaseAdmin } from "./Firebase/firebaseAdmin.js";
 import { initSocket } from "./config/socket.config.js";
 import { socketManager } from "./sockets/socket.manager.js";
+import { socketAuthMiddleware } from "./sockets/socketAuthMiddleware.js";
 // import { initializeSocket } from "./sockets/Socket.js";
 
 const PORT = process.env.PORT || 5000;
@@ -15,8 +16,7 @@ const startServer = async () => {
     await DB1;
     // init socket
     const io = initSocket(server);
-    // console.log("socket initialized");
-
+    socketAuthMiddleware(io);
     socketManager(io);
     // close socket
     server.listen(PORT, () => {

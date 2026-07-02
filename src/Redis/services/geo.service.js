@@ -1,9 +1,9 @@
 import { redis } from "../../config/redis.config.js";
+import { TRIP_REDIS_KEYS } from "../../modules/trip/constants/trip.redis.keys.js";
 
-const DRIVER_LOCATION_KEY = "drivers_live_locations";
-const DRIVER_HEARTBEAT_PREFIX = "driver_heartbeat:";
-
+const DRIVER_HEARTBEAT_PREFIX = TRIP_REDIS_KEYS.DRIVER_HEARTBEAT;
 const HEARTBEAT_TTL = 30;
+const DRIVER_LOCATION_KEY = TRIP_REDIS_KEYS.DRIVER_LOCATION;
 
 export const geoService = {
   async updateDriverLocation({ driverId, longitude, latitude }) {
