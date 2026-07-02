@@ -3,6 +3,36 @@ import { Company } from "../models/Company.js";
 import { Driver } from "../models/Driver.js";
 import { errorResponse, successResponse } from "../shared/utils/response.js";
 
+// get driver details only for currnet driver login
+export const getDriverDetails = async (req, res) => {
+  try {
+    const driverAuthId = req.userId;
+    const driver = await Driver.findOne(
+      { driverUserId: driverAuthId },
+      { vehicles: 0 }
+    );
+    if (!driver) {
+      return errorResponse({
+        statusCode: 404,
+        res,
+        message: "Driver not found",
+      });
+    }
+    successResponse({
+      res,
+      statusCode: 200,
+      message: "Fetched driver details successfully",
+      data: driver,
+    });
+  } catch (error) {
+    return errorResponse({
+      statusCode: 500,
+      res,
+      message: "Failed to fetch driver details",
+    });
+  }
+};
+
 // create driver for my company
 export const createDriver = async (req, res) => {
   try {

@@ -12,7 +12,6 @@ export const initSocket = (server) => {
       methods: ["GET", "POST", "PUT", "DELETE"],
     },
   });
-
   return io;
 };
 
