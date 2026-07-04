@@ -10,7 +10,7 @@ export const geoService = {
     // save geo location
     await redis.geoadd(DRIVER_LOCATION_KEY, longitude, latitude, driverId);
 
-    // heartbeat key
+    // heartbeat key jnjgr
     await redis.set(
       `${DRIVER_HEARTBEAT_PREFIX}${driverId}`,
       "online",
