@@ -7,7 +7,7 @@ const DRIVER_LOCATION_KEY = TRIP_REDIS_KEYS.DRIVER_LOCATION;
 
 export const geoService = {
   async updateDriverLocation({ driverId, longitude, latitude }) {
-    // save geo location
+    // save geo location updte
     await redis.geoadd(DRIVER_LOCATION_KEY, longitude, latitude, driverId);
 
     // heartbeat key jnjgr
