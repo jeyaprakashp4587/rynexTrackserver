@@ -11,7 +11,7 @@ export const registerTripLocationHandlers = (io, socket) => {
     async (data) => {
       console.log("trip data", data);
 
-      await saveDriverLocation(data);
+      // await saveDriverLocation(data);
 
       io.to(socketRooms.tripRoom(data.tripId)).emit(
         TRIP_SOCKET_EVENTS.LOCATION_UPDATED,
