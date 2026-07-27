@@ -50,7 +50,7 @@ export const register = async (req, res) => {
 // login
 export const login = async (req, res) => {
   const { MobileNumber, password } = req.body;
-  // console.log("trigger", MobileNumber, password);
+  console.log("trigger", MobileNumber, password);
 
   try {
     // return;
