@@ -57,7 +57,7 @@ export const getParticularRequestedTripDetails = async (req, res) => {
       tripId,
       req.userId
     );
-    console.log("trip ", trip);
+    // console.log("trip ", trip);
 
     return successResponse({
       res,

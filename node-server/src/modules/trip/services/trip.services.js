@@ -19,7 +19,6 @@ export const requestTrip = async ({ body, userId }) => {
     status: TRIP_STATUS.PENDING,
   });
   const formattedStops = formatTripStop(stops);
-  kvfekg;
 
   await tripRepo.createTripStops({
     tripRequestId: tripRequest._id,
@@ -40,7 +39,6 @@ export const getParticularRequestedTrip = async (tripId, userId) => {
 export const acceptTrip = async ({ body, userId }) => {
   const { recipients, tripId } = body;
 
-  // const session = await mongoose.startSession();
   //  owner accept request, always they will send receipts from front end
   try {
     // session.startTransaction();
@@ -52,9 +50,7 @@ export const acceptTrip = async ({ body, userId }) => {
 
     const tripRequest = await tripRepo.findTripRequestById({
       tripId,
-      // session,
     });
-    // console.log("find requestee trip", tripRequest);
 
     if (!tripRequest) {
       throw new Error("Trip request not found");
@@ -68,15 +64,12 @@ export const acceptTrip = async ({ body, userId }) => {
         // session,
       });
 
-      // await session.commitTransaction();
-
       return {
         message: "Trip assigned successfully",
       };
     }
 
     // FIND CURRENT USER receipt from trip request
-
     const currentUser = tripRequest?.recipients?.find(
       (user) => user.userId.toString() === userId.toString()
     );
@@ -91,7 +84,6 @@ export const acceptTrip = async ({ body, userId }) => {
       userId,
       // session,
     });
-    // console.log("requested trip staatus ceepeted", updatedRequest);
 
     if (!updatedRequest) {
       throw new Error("Trip already accepted");
@@ -102,7 +94,6 @@ export const acceptTrip = async ({ body, userId }) => {
       tripRequestId: tripId,
       // session,
     });
-    // console.log("finded texting tip", existingTrip);
 
     // CREATE TRIP IF NOT EXISTS
     if (!existingTrip) {

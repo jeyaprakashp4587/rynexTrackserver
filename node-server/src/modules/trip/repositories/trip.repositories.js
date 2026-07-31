@@ -72,17 +72,20 @@ export const updateTripRequestAccepted = async ({ tripId, userId }) => {
     {
       _id: tripId,
       status: TRIP_STATUS.PENDING,
-      "recipients.userId": userId,
     },
     {
       $set: {
         status: TRIP_STATUS.ACCEPTED,
-        "recipients.$.status": TRIP_STATUS.ACCEPTED,
+        "recipients.$[recipient].status": TRIP_STATUS.ACCEPTED,
       },
     },
     {
       new: true,
-      // session,
+      arrayFilters: [
+        {
+          "recipient.userId": userId,
+        },
+      ],
     }
   );
 };
