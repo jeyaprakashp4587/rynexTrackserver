@@ -2,6 +2,7 @@ import { Router } from "express";
 import { verifyToken } from "../../middlewares/JWT.js";
 import {
   acceptTrip,
+  getCompanyCurrentTrips,
   getCurrentTripDetails,
   getParticularRequestedTripDetails,
   getRequestTrips,
@@ -23,4 +24,7 @@ router.get(
 router.post("/acceptTrip", verifyToken, acceptTrip);
 // get current driver trip details
 router.get("/getCurrentTripDetails", verifyToken, getCurrentTripDetails);
+// get current company trips
+router.get("/getCompanyCurrentTrips", verifyToken, getCompanyCurrentTrips);
+
 export default router;

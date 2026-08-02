@@ -147,3 +147,22 @@ export const updateTripStop = async (req, res) => {
     });
   }
 };
+
+// get all company current trips for company only
+export const getCompanyCurrentTrips = async (req, res) => {
+  try {
+    const trips = await tripService.getCompanyCurrentTrips(req.userId);
+    return successResponse({
+      res,
+      statusCode: 200,
+      message: "Trips fetched successfully",
+      data: trips,
+    });
+  } catch (error) {
+    return errorResponse({
+      res,
+      statusCode: 500,
+      message: "Failed to get trips",
+    });
+  }
+};

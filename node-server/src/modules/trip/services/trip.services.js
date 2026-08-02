@@ -213,3 +213,13 @@ export const updateTripStop = async ({ body, userId }) => {
     throw error;
   }
 };
+
+// get all company current trips for company only
+export const getCompanyCurrentTrips = async (userId) => {
+  try {
+    const trips = await tripRepo.getCompanyCurrentTrips(userId);
+    return trips;
+  } catch (error) {
+    throw error;
+  }
+};

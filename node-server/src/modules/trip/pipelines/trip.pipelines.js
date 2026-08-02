@@ -524,3 +524,31 @@ export const getStopsByRecipientIdPipeLine = (tripId, recipientId) => {
     },
   ];
 };
+// get comapny currnet trips (company only) using assignby
+export const getCompanyCurrentTripsPipeline = (userId) => {
+  return [
+    {
+      $match: {
+        status: TRIP_STATUS.ACCEPTED,
+        "recipients.assignedBy": userId,
+        isTripEnded: true,
+      },
+    },
+    {
+      $lookup: {
+        from: "tripstops",
+        localField: "_id",
+        foreignField: "tripId",
+        as: "stops",
+      },
+    },
+    {
+      $lookup: {
+        from: "users",
+        localField: "recipients.userId",
+        foreignField: "_id",
+        as: "users",
+      },
+    },
+  ];
+};
