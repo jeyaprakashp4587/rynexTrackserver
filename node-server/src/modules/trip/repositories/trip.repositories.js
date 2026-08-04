@@ -225,5 +225,6 @@ export const updateTripStopStatus = async (
 
 // get all company current trips for company only
 export const getCompanyCurrentTrips = async (userId) => {
+  console.log("user id from repo", userId);
   return trip.aggregate(getCompanyCurrentTripsPipeline(userId));
 };

@@ -218,6 +218,7 @@ export const updateTripStop = async ({ body, userId }) => {
 export const getCompanyCurrentTrips = async (userId) => {
   try {
     const trips = await tripRepo.getCompanyCurrentTrips(userId);
+    console.log("trips from service", trips);
     return trips;
   } catch (error) {
     throw error;

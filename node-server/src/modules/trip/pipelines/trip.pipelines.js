@@ -530,8 +530,9 @@ export const getCompanyCurrentTripsPipeline = (userId) => {
     {
       $match: {
         status: TRIP_STATUS.ACCEPTED,
-        "recipients.assignedBy": userId,
-        isTripEnded: true,
+        "recipients.assignedBy": new mongoose.Types.ObjectId(userId),
+        "recipients.status": TRIP_STATUS.ACCEPTED,
+        isTripEnded: false,
       },
     },
     {
@@ -548,6 +549,27 @@ export const getCompanyCurrentTripsPipeline = (userId) => {
         localField: "recipients.userId",
         foreignField: "_id",
         as: "users",
+      },
+    },
+    {
+      $project: {
+        _id: 1,
+        tripRequestId: 1,
+        createdBy: 1,
+        status: 1,
+        tripStopMode: 1,
+        stops: 1,
+        users: {
+          $map: {
+            input: "$users",
+            as: "user",
+            in: {
+              _id: "$$user._id",
+              Name: "$$user.Name",
+              MobileNumber: "$$user.MobileNumber",
+            },
+          },
+        },
       },
     },
   ];
