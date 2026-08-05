@@ -166,3 +166,28 @@ export const getCompanyCurrentTrips = async (req, res) => {
     });
   }
 };
+
+export const getParticularCompanyTripDetails = async (req, res) => {
+  try {
+    const { tripId } = req.params;
+
+    const trip = await tripService.getParticularCompanyTripDetails(
+      tripId,
+      req.userId
+    );
+    // console.log("trip ", trip);
+
+    return successResponse({
+      res,
+      statusCode: 200,
+      message: "Trip fetched successfully",
+      data: trip,
+    });
+  } catch (error) {
+    return errorResponse({
+      res,
+      statusCode: 500,
+      message: "Failed to get trip",
+    });
+  }
+};

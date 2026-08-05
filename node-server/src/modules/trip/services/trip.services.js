@@ -224,3 +224,12 @@ export const getCompanyCurrentTrips = async (userId) => {
     throw error;
   }
 };
+
+export const getParticularCompanyTripDetails = async (tripId, userId) => {
+  try {
+    const trip = await tripRepo.getParticularCompanyTrip(tripId, userId);
+    return trip[0];
+  } catch (error) {
+    throw error;
+  }
+};
