@@ -218,16 +218,24 @@ export const updateTripStop = async ({ body, userId }) => {
 export const getCompanyCurrentTrips = async (userId) => {
   try {
     const trips = await tripRepo.getCompanyCurrentTrips(userId);
-    console.log("trips from service", trips);
+    // console.log("trips", trips);
+
     return trips;
   } catch (error) {
     throw error;
   }
 };
 
-export const getParticularCompanyTripDetails = async (tripId, userId) => {
+export const getParticularCompanyCurrentTripDetails = async (
+  tripId,
+  userId
+) => {
   try {
-    const trip = await tripRepo.getParticularCompanyTrip(tripId, userId);
+    const trip = await tripRepo.getParticularCompanyCurrentTripRepo(
+      tripId,
+      userId
+    );
+    console.log("trip from service", trip);
     return trip[0];
   } catch (error) {
     throw error;

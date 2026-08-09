@@ -152,6 +152,7 @@ export const updateTripStop = async (req, res) => {
 export const getCompanyCurrentTrips = async (req, res) => {
   try {
     const trips = await tripService.getCompanyCurrentTrips(req.userId);
+
     return successResponse({
       res,
       statusCode: 200,
@@ -167,15 +168,15 @@ export const getCompanyCurrentTrips = async (req, res) => {
   }
 };
 
-export const getParticularCompanyTripDetails = async (req, res) => {
+export const getParticularCompanyCurrentTripDetails = async (req, res) => {
   try {
     const { tripId } = req.params;
 
-    const trip = await tripService.getParticularCompanyTripDetails(
+    const trip = await tripService.getParticularCompanyCurrentTripDetails(
       tripId,
       req.userId
     );
-    // console.log("trip ", trip);
+    // console.log("company trip data", trip);
 
     return successResponse({
       res,

@@ -12,6 +12,7 @@ import {
 import {
   getCompanyCurrentTripsPipeline,
   getfindAcceptedTripByRecipientPipeline,
+  getParticularCompanyCurrentTripPipeline,
   getParticularTripPipeline,
   getRequestTripsPipeline,
   getStopsByRecipientIdPipeLine,
@@ -228,6 +229,14 @@ export const getCompanyCurrentTrips = async (userId) => {
   return trip.aggregate(getCompanyCurrentTripsPipeline(userId));
 };
 
-export const getParticularCompanyTrip = async (tripId, userId) => {
-  return trip.aggregate(getParticularTripPipeline(tripId, userId));
+export const getParticularCompanyCurrentTripRepo = async (tripId, userId) => {
+  try {
+    const tripdata = await trip.aggregate(
+      getParticularCompanyCurrentTripPipeline(tripId, userId)
+    );
+    return tripdata;
+  } catch (error) {
+    console.error("getParticularCompanyCurrentTrip error:", error);
+    throw error;
+  }
 };

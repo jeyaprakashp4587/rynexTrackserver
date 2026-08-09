@@ -4,7 +4,7 @@ import {
   acceptTrip,
   getCompanyCurrentTrips,
   getCurrentTripDetails,
-  getParticularCompanyTripDetails,
+  getParticularCompanyCurrentTripDetails,
   getParticularRequestedTripDetails,
   getRequestTrips,
   requestTrip,
@@ -29,9 +29,9 @@ router.get("/getCurrentTripDetails", verifyToken, getCurrentTripDetails);
 router.get("/getCompanyCurrentTrips", verifyToken, getCompanyCurrentTrips);
 // get particular trip details
 router.get(
-  "/getParticularCompanyTripDetails/:tripId",
+  "/getParticularCompanyCurrentTripDetails/:tripId",
   verifyToken,
-  getParticularCompanyTripDetails
+  getParticularCompanyCurrentTripDetails
 );
 
 export default router;
