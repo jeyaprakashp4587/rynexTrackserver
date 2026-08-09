@@ -235,7 +235,7 @@ export const getParticularCompanyCurrentTripDetails = async (
       tripId,
       userId
     );
-    console.log("trip from service", trip);
+    // console.log("trip from service", trip);
     return trip[0];
   } catch (error) {
     throw error;
