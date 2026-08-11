@@ -1,11 +1,11 @@
 import "dotenv/config";
 import http from "http";
-import app from "./app.js";
-import { DB1 } from "./config/db.js";
-import { initializeFirebaseAdmin } from "./Firebase/firebaseAdmin.js";
-import { initSocket } from "./config/socket.config.js";
-import { socketManager } from "./sockets/socket.manager.js";
-import { socketAuthMiddleware } from "./sockets/socketAuthMiddleware.js";
+import app from "./src/app.js";
+import { DB1 } from "./src/config/db.js";
+import { initializeFirebaseAdmin } from "./src/Firebase/firebaseAdmin.js";
+import { initSocket } from "./src/config/socket.config.js";
+import { socketManager } from "./src/sockets/socket.manager.js";
+import { socketAuthMiddleware } from "./src/sockets/socketAuthMiddleware.js";
 // import { initializeSocket } from "./sockets/Socket.js";
 
 const PORT = process.env.PORT || 5000;

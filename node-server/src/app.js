@@ -20,6 +20,7 @@ app.get("/metrics", async (req, res) => {
   res.set("Content-Type", register.contentType);
   res.end(await register.metrics());
 });
+
 app.get("/health", (req, res) => {
   return res.status(200).json({
     success: true,

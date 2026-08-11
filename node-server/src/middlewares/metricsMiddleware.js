@@ -1,3 +1,4 @@
+import app from "../app";
 import { httpRequestDuration } from "../Monitoring/PrometheusMetrics";
 
 app.use((req, res, next) => {
