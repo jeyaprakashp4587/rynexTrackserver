@@ -1,21 +1,43 @@
-import app from "../app";
-import { httpRequestDuration } from "../Monitoring/PrometheusMetrics";
+import {
+  httpRequestDuration,
+  httpRequestsTotal,
+  httpErrorsTotal,
+} from "../Monitoring/PrometheusMetrics.js";
 
-app.use((req, res, next) => {
-  if (req.path === "/metrics") {
-    return next();
-  }
-
-  const start = process.hrtime();
+export const httpMetricsMiddleware = (req, res, next) => {
+  const start = process.hrtime.bigint();
 
   res.on("finish", () => {
-    const diff = process.hrtime(start);
-    const duration = diff[0] + diff[1] / 1e9;
+    const end = process.hrtime.bigint();
 
-    httpRequestDuration
-      .labels(req.method, req.route?.path || req.path, res.statusCode)
-      .observe(duration);
+    const durationSeconds = Number(end - start) / 1_000_000_000;
+
+    const method = req.method;
+
+    // Express route path
+    const route = req.route?.path
+      ? `${req.baseUrl || ""}${req.route.path}`
+      : req.path || "unknown";
+
+    const statusCode = String(res.statusCode);
+
+    const labels = {
+      method,
+      route,
+      status_code: statusCode,
+    };
+
+    // Histogram
+    httpRequestDuration.observe(labels, durationSeconds);
+
+    // Counter
+    httpRequestsTotal.inc(labels);
+
+    // 5xx errors
+    if (res.statusCode >= 500) {
+      httpErrorsTotal.inc(labels);
+    }
   });
 
   next();
-});
+};

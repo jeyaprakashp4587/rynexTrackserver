@@ -6,8 +6,8 @@ import companyRoutes from "./routes/companyRoutes.js";
 import driverRoutes from "./routes/driverRoutes.js";
 import tripRoutes from "./modules/trip/trip.route.js";
 import bodyParser from "body-parser";
-// import promclient from "prom-client";
 import { register } from "./Monitoring/PrometheusMetrics.js";
+import { httpMetricsMiddleware } from "./middlewares/metricsMiddleware.js";
 
 const app = express();
 // promclient.collectDefaultMetrics({ timeout: 5000 });
@@ -21,6 +21,8 @@ app.get("/metrics", async (req, res) => {
   res.end(await register.metrics());
 });
 
+// middleware for prometheus metrics endpoint
+app.use(httpMetricsMiddleware);
 app.get("/health", (req, res) => {
   return res.status(200).json({
     success: true,
