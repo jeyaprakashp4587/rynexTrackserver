@@ -37,6 +37,8 @@ export const getParticularRequestedTrip = async (tripRequestId, userId) => {
   const aggregate = tripRequests.aggregate(
     getParticularTripPipeline(tripRequestId, userId)
   );
+  // console.log("data", aggregate);
+
   return aggregate;
 };
 

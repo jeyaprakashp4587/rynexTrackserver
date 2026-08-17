@@ -56,7 +56,7 @@ export const acceptTrip = async ({ body, userId }) => {
       throw new Error("Trip request not found");
     }
 
-    // COMPANY FLOW
+    // COMPANY FLOW Owner
     if (tripRequest.type === TRIP_TYPE.COMPANY) {
       await tripRepo.assignTripToDriver({
         tripId,
@@ -66,6 +66,7 @@ export const acceptTrip = async ({ body, userId }) => {
 
       return {
         message: "Trip assigned successfully",
+        trip: tripRequest,
       };
     }
 
@@ -235,7 +236,7 @@ export const getParticularCompanyCurrentTripDetails = async (
       tripId,
       userId
     );
-    // console.log("trip from service", trip);
+    // console.log("trip from service duo", trip);
     return trip[0];
   } catch (error) {
     throw error;

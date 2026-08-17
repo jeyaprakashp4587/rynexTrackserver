@@ -11,6 +11,7 @@ import {
 } from "./controller/trip.controller.js";
 
 const router = Router();
+// /trips/requestTrip
 //create trip request
 router.post("/requestTrip", verifyToken, requestTrip);
 // get trip requests

@@ -47,7 +47,6 @@ const tripSchema = new mongoose.Schema(
         driverId: {
           type: mongoose.Schema.Types.ObjectId,
         },
-
         status: {
           type: String,
           enum: [
@@ -60,19 +59,15 @@ const tripSchema = new mongoose.Schema(
           ],
           default: TRIP_STATUS.PENDING,
         },
-
         acceptedAt: Date,
         rejectedAt: Date,
         cancelledAt: Date,
         completedAt: Date,
-
         cancelReason: String,
-
         currentStopIndex: {
           type: Number,
           default: 1,
         },
-
         vehicleId: {},
         assignedBy: {},
         assignedAt: {},

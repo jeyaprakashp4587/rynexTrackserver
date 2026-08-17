@@ -7,6 +7,8 @@ import {
 
 export const requestTrip = async (req, res) => {
   try {
+    // console.log("request trip body", req.body, "userId", req.userId);
+
     const result = await tripService.requestTrip({
       body: req.body,
       userId: req.userId,
@@ -151,6 +153,8 @@ export const updateTripStop = async (req, res) => {
 // get all company current trips for company only
 export const getCompanyCurrentTrips = async (req, res) => {
   try {
+    // console.log("triiger");
+
     const trips = await tripService.getCompanyCurrentTrips(req.userId);
 
     return successResponse({

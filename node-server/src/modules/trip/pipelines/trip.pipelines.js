@@ -154,23 +154,21 @@ export const getRequestTripsPipeline = (userId) => {
 };
 
 export const getParticularTripPipeline = (tripId, userId) => {
-  // console.log("trip id from pipeline", tripId, userId);
   const userObjectId = new mongoose.Types.ObjectId(userId);
-  console.log("trip id from pipeline", tripId, userId);
 
   return [
     { $match: { _id: new mongoose.Types.ObjectId(tripId) } },
-    //   // stops
     {
       $lookup: {
         from: "tripstops",
         localField: "_id",
-        foreignField: "tripId",
+        foreignField: "tripRequestId",
         as: "stops",
       },
     },
-    { $unwind: "$stops" },
-    //   // just the role, nothing else - this is only for the branch decision below
+    {
+      $unwind: "$stops",
+    },
     {
       $lookup: {
         from: "users",
@@ -182,7 +180,6 @@ export const getParticularTripPipeline = (tripId, userId) => {
         as: "requestingUser",
       },
     },
-    //   // enrich every recipient - works whether caller is a recipient or not
     {
       $lookup: {
         from: "users",
@@ -210,7 +207,6 @@ export const getParticularTripPipeline = (tripId, userId) => {
         pipeline: [{ $project: { vehicleNumber: 1, vehicleModel: 1 } }],
       },
     },
-    //   // merge objects
     {
       $addFields: {
         enrichedReceipts: {
@@ -284,7 +280,6 @@ export const getParticularTripPipeline = (tripId, userId) => {
         requestingUserRole: { $arrayElemAt: ["$requestingUser.role", 0] },
       },
     },
-
     {
       $addFields: {
         users: {
@@ -304,7 +299,6 @@ export const getParticularTripPipeline = (tripId, userId) => {
         },
       },
     },
-
     {
       $project: {
         recipients: 0,
@@ -318,7 +312,6 @@ export const getParticularTripPipeline = (tripId, userId) => {
     },
   ];
 };
-
 // get accept driver current trip detsil (driver only)
 export const getfindAcceptedTripByRecipientPipeline = (recipientId) => {
   return [
@@ -530,7 +523,7 @@ export const getCompanyCurrentTripsPipeline = (userId) => {
       $match: {
         status: TRIP_STATUS.ACCEPTED,
         "recipients.assignedBy": new mongoose.Types.ObjectId(userId),
-        "recipients.status": TRIP_STATUS.ACCEPTED,
+        // "recipients.status": TRIP_STATUS.ACCEPTED,
         isTripEnded: false,
       },
     },
@@ -551,6 +544,7 @@ export const getCompanyCurrentTripsPipeline = (userId) => {
       },
     },
     {
+      // 6a2095e54604abd9538046df
       $project: {
         _id: 1,
         tripRequestId: 1,
@@ -566,6 +560,27 @@ export const getCompanyCurrentTripsPipeline = (userId) => {
               _id: "$$user._id",
               Name: "$$user.Name",
               MobileNumber: "$$user.MobileNumber",
+              currentStopIndex: {
+                $let: {
+                  vars: {
+                    recipient: {
+                      $arrayElemAt: [
+                        {
+                          $filter: {
+                            input: "$recipients",
+                            as: "recipient",
+                            cond: {
+                              $eq: ["$$recipient.userId", "$$user._id"],
+                            },
+                          },
+                        },
+                        0,
+                      ],
+                    },
+                  },
+                  in: "$$recipient.currentStopIndex",
+                },
+              },
             },
           },
         },
