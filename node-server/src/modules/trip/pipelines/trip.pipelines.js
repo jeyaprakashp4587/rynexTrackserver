@@ -7,8 +7,15 @@ export const getRequestTripsPipeline = (userId) => {
   return [
     {
       $match: {
-        "recipients.userId": new mongoose.Types.ObjectId(userId),
-        "recipients.status": TRIP_STATUS.PENDING,
+        $or: [
+          {
+            "recipients.userId": new mongoose.Types.ObjectId(userId),
+            "recipients.status": TRIP_STATUS.PENDING,
+          },
+          {
+            createdBy: new mongoose.Types.ObjectId(userId),
+          },
+        ],
       },
     },
 

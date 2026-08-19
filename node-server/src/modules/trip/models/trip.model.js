@@ -47,6 +47,9 @@ const tripSchema = new mongoose.Schema(
         driverId: {
           type: mongoose.Schema.Types.ObjectId,
         },
+        driverUserId: {
+          type: mongoose.Schema.Types.ObjectId,
+        },
         status: {
           type: String,
           enum: [

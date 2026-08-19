@@ -7,8 +7,6 @@ import {
 
 export const requestTrip = async (req, res) => {
   try {
-    // console.log("request trip body", req.body, "userId", req.userId);
-
     const result = await tripService.requestTrip({
       body: req.body,
       userId: req.userId,
@@ -82,7 +80,6 @@ export const acceptTrip = async (req, res) => {
       body: req.body,
       userId: req.userId,
     });
-
     return successResponse({ res, statusCode: 200, message: result.message });
   } catch (error) {
     return errorResponse({ res, statusCode: 500, message: error.message });

@@ -26,7 +26,9 @@ const tripRequests = new mongoose.Schema({
         type: mongoose.Schema.Types.ObjectId,
         ref: "Driver",
       },
-
+      driverUserId: {
+        type: mongoose.Schema.Types.ObjectId,
+      },
       vehicleId: {
         type: mongoose.Schema.Types.ObjectId,
         ref: "Vehicle",
