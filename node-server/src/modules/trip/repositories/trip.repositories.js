@@ -53,15 +53,17 @@ export const findPendingTripRequest = async (tripRequestId, userId) => {
 
 // reassign and re request make to request trip to their drivers
 export const assignTripToDriver = async ({ tripRequestId, recipients }) => {
-  // update the trip request
+  console.log("Recipients from service:", recipients, tripRequestId);
+
   return tripRequests.updateOne(
     {
       _id: tripRequestId,
     },
     {
       $set: {
+        status: TRIP_STATUS.ACCEPTED,
         recipients,
-        type: TRIP_TYPE.INDEPENDENT,
+        tripType: TRIP_TYPE.INDEPENDENT,
       },
     }
   );

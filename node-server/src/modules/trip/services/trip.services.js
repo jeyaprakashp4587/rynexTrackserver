@@ -39,11 +39,11 @@ export const getParticularRequestedTrip = async (tripId, userId) => {
 export const acceptTrip = async ({ body, userId }) => {
   const { recipients, tripId } = body;
 
-  //  owner accept request, always they will send receipts from front end
-  try {
-    // session.startTransaction();
+  console.log("Recipients received:", recipients);
 
+  try {
     let formattedRecipients = [];
+
     if (recipients?.length) {
       formattedRecipients = formatRecipients(recipients, userId);
     }
@@ -52,17 +52,27 @@ export const acceptTrip = async ({ body, userId }) => {
       tripId,
     });
 
+    console.log("Trip request:", tripRequest);
+
     if (!tripRequest) {
       throw new Error("Trip request not found");
     }
 
-    // COMPANY FLOW Owner
-    if (tripRequest.type === TRIP_TYPE.COMPANY) {
-      await tripRepo.assignTripToDriver({
-        tripId,
+    if (tripRequest.tripType === TRIP_TYPE.COMPANY) {
+      console.log("Trip request type:", tripRequest.tripType);
+
+      const assignmentResult = await tripRepo.assignTripToDriver({
+        tripRequestId: tripId,
         recipients: formattedRecipients,
-        // session,
       });
+
+      console.log("Trip assignment result:", assignmentResult);
+
+      if (!assignmentResult || assignmentResult.matchedCount <= 0) {
+        return {
+          message: "Trip assignment failed",
+        };
+      }
 
       return {
         message: "Trip assigned successfully",
@@ -70,107 +80,85 @@ export const acceptTrip = async ({ body, userId }) => {
       };
     }
 
-    // FIND CURRENT USER receipt from trip request
-    const currentUser = tripRequest?.recipients?.find(
-      (user) => user.userId.toString() === userId.toString()
+    console.log("Independent driver flow");
+
+    const currentRecipient = tripRequest?.recipients?.find(
+      (recipient) => recipient.userId.toString() === userId.toString()
     );
 
-    if (!currentUser) {
+    if (!currentRecipient) {
       throw new Error("Recipient not found");
     }
 
-    // ACCEPT REQUEST (ATOMIC)
-    const updatedRequest = await tripRepo.updateTripRequestAccepted({
+    const acceptedTripRequest = await tripRepo.updateTripRequestAccepted({
       tripId,
       userId,
-      // session,
     });
 
-    if (!updatedRequest) {
+    if (!acceptedTripRequest) {
       throw new Error("Trip already accepted");
     }
 
-    // FIND EXISTING TRIP
-    let existingTrip = await tripRepo.findTripByRequestId({
+    let acceptedTrip = await tripRepo.findTripByRequestId({
       tripRequestId: tripId,
-      // session,
     });
 
-    // CREATE TRIP IF NOT EXISTS
-    if (!existingTrip) {
-      existingTrip = await tripRepo.createTrip({
+    if (!acceptedTrip) {
+      acceptedTrip = await tripRepo.createTrip({
         payload: {
           tripRequestId: tripId,
-          createdBy: updatedRequest.createdBy,
-          tripStopMode: updatedRequest.tripStopMode,
+          createdBy: acceptedTripRequest.createdBy,
+          tripStopMode: acceptedTripRequest.tripStopMode,
           status: TRIP_STATUS.ACCEPTED,
           recipients: [],
         },
-        // session,
       });
 
-      // mongoose create([]) returns array
-      existingTrip = existingTrip[0];
-      // console.log("trip created ", existingTrip);
+      acceptedTrip = acceptedTrip[0];
     }
 
-    const recipientId = new mongoose.Types.ObjectId();
+    const tripRecipientId = new mongoose.Types.ObjectId();
 
-    const recipientData = {
-      _id: recipientId,
+    const tripRecipient = {
+      _id: tripRecipientId,
       userId,
-      driverId: currentUser.driverId,
-      vehicleId: currentUser.vehicleId,
-      assignedBy: currentUser.assignedBy,
+      driverId: currentRecipient.driverId,
+      vehicleId: currentRecipient.vehicleId,
+      assignedBy: currentRecipient.assignedBy,
       assignedAt: new Date(),
       status: TRIP_STATUS.ACCEPTED,
     };
-    // ADD RECIPIENT TO TRIP
+
     await tripRepo.addRecipientToTrip({
-      tripId: existingTrip._id,
-      recipientData,
-      // session,
+      tripId: acceptedTrip._id,
+      recipientData: tripRecipient,
     });
-    // console.log("add receipt to trip passed");
-    // UPDATE STOPS
+
     await tripRepo.updateTripStopsRecipients({
       tripRequestId: tripId,
-      tripId: existingTrip._id,
-      recipientId: recipientId,
-      // session,
+      tripId: acceptedTrip._id,
+      recipientId: tripRecipientId,
     });
 
-    // LOCK VEHICLE
     await tripRepo.updateVehicleAvailability({
-      vehicleId: currentUser.vehicleId,
+      vehicleId: currentRecipient.vehicleId,
       currentlyAvailable: false,
-      // session,
     });
 
-    // LOCK DRIVER
     await tripRepo.updateDriverAvailability({
-      driverId: currentUser.driverId,
+      driverId: currentRecipient.driverId,
       currentlyAvailable: false,
-      // session,
     });
-
-    // COMMIT
-    // await session.commitTransaction();
 
     return {
       message: "Trip accepted successfully",
-      trip: existingTrip,
+      trip: acceptedTrip,
     };
-  } catch (err) {
-    // ROLLBACK EVERYTHING
-    // await session.abortTransaction();
-
-    throw err;
+  } catch (error) {
+    throw error;
   } finally {
-    // session.endSession();
   }
 };
-
 // get current trip details, for only drivers
 export const getCurrentTripDetails = async (userId) => {
   try {

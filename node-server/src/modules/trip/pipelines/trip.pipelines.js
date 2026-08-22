@@ -8,12 +8,15 @@ export const getRequestTripsPipeline = (userId) => {
     {
       $match: {
         $or: [
+          // this filtration for driver, getthier reqiest or owner of they are as receitps
           {
             "recipients.userId": new mongoose.Types.ObjectId(userId),
             "recipients.status": TRIP_STATUS.PENDING,
           },
+          // its for owners for who created the trip request, they can see all their request trips
           {
             createdBy: new mongoose.Types.ObjectId(userId),
+            "recipients.status": TRIP_STATUS.PENDING,
           },
         ],
       },
@@ -152,6 +155,7 @@ export const getRequestTripsPipeline = (userId) => {
         // vehicle: 1,
         // currentRecipient: 1,
         tripType: 1,
+        tripStopMode: 1,
         tripMode: 1,
         stops: "$tripStops",
         status: 1,
