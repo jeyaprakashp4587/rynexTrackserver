@@ -1,9 +1,8 @@
-import mongoose from "mongoose";
 import { DB1 } from "../config/db.js";
-import { User } from "../models/User.js";
-import { Company } from "../models/Company.js";
-import { Driver } from "../models/Driver.js";
-import { Vehicle } from "../models/Vehicle.js";
+import { User } from "../modules/auth/models/user.model.js";
+import { Company } from "../modules/company/models/company.model.js";
+import { Driver } from "../modules/driver/models/driver.model.js";
+import { Vehicle } from "../modules/vehicle/models/vehicle.model.js";
 
 const seed = async () => {
   try {

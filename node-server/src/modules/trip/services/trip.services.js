@@ -4,14 +4,14 @@ import { formatTripStop } from "../utils/formatTripStop.js";
 import { TRIP_STATUS, TRIP_TYPE } from "../constants/trip.constants.js";
 import mongoose from "mongoose";
 
-export const requestTrip = async ({ body, userId }) => {
+export const createTripRequest = async ({ body, userId }) => {
   const { data } = body;
 
   const { tripMode, bookingType, recipients, stops } = data;
 
   const formattedRecipients = formatRecipients(recipients, userId);
 
-  const tripRequest = await tripRepo.createTripRequest({
+  const tripRequest = await tripRepo.createTripRequestRecord({
     createdBy: [userId],
     tripType: bookingType,
     tripMode,
@@ -20,23 +20,23 @@ export const requestTrip = async ({ body, userId }) => {
   });
   const formattedStops = formatTripStop(stops);
 
-  await tripRepo.createTripStops({
+  await tripRepo.createTripStopRecords({
     tripRequestId: tripRequest._id,
     stops: formattedStops,
   });
   return tripRequest;
 };
 
-export const getRequestTrips = async (userId) => {
-  return tripRepo.getRequestTrips(userId);
+export const listTripRequests = async (userId) => {
+  return tripRepo.listTripRequestsByUser(userId);
 };
 
-export const getParticularRequestedTrip = async (tripId, userId) => {
-  const trip = await tripRepo.getParticularRequestedTrip(tripId, userId);
+export const getTripRequestDetails = async (tripId, userId) => {
+  const trip = await tripRepo.getTripRequestDetailById(tripId, userId);
   return trip[0];
 };
 
-export const acceptTrip = async ({ body, userId }) => {
+export const acceptTripRequest = async ({ body, userId }) => {
   const { recipients, tripId } = body;
 
   console.log("Recipients received:", recipients);
@@ -61,7 +61,7 @@ export const acceptTrip = async ({ body, userId }) => {
     if (tripRequest.tripType === TRIP_TYPE.COMPANY) {
       console.log("Trip request type:", tripRequest.tripType);
 
-      const assignmentResult = await tripRepo.assignTripToDriver({
+      const assignmentResult = await tripRepo.assignTripToDriverForRequest({
         tripRequestId: tripId,
         recipients: formattedRecipients,
       });
@@ -90,7 +90,7 @@ export const acceptTrip = async ({ body, userId }) => {
       throw new Error("Recipient not found");
     }
 
-    const acceptedTripRequest = await tripRepo.updateTripRequestAccepted({
+    const acceptedTripRequest = await tripRepo.markTripRequestAccepted({
       tripId,
       userId,
     });
@@ -99,12 +99,12 @@ export const acceptTrip = async ({ body, userId }) => {
       throw new Error("Trip already accepted");
     }
 
-    let acceptedTrip = await tripRepo.findTripByRequestId({
+    let acceptedTrip = await tripRepo.findTripByTripRequestId({
       tripRequestId: tripId,
     });
 
     if (!acceptedTrip) {
-      acceptedTrip = await tripRepo.createTrip({
+      acceptedTrip = await tripRepo.createTripRecord({
         payload: {
           tripRequestId: tripId,
           createdBy: acceptedTripRequest.createdBy,
@@ -129,23 +129,23 @@ export const acceptTrip = async ({ body, userId }) => {
       status: TRIP_STATUS.ACCEPTED,
     };
 
-    await tripRepo.addRecipientToTrip({
+    await tripRepo.addRecipientToTripRecord({
       tripId: acceptedTrip._id,
       recipientData: tripRecipient,
     });
 
-    await tripRepo.updateTripStopsRecipients({
+    await tripRepo.linkTripStopsToRecipient({
       tripRequestId: tripId,
       tripId: acceptedTrip._id,
       recipientId: tripRecipientId,
     });
 
-    await tripRepo.updateVehicleAvailability({
+    await tripRepo.setVehicleAvailability({
       vehicleId: currentRecipient.vehicleId,
       currentlyAvailable: false,
     });
 
-    await tripRepo.updateDriverAvailability({
+    await tripRepo.setDriverAvailability({
       driverId: currentRecipient.driverId,
       currentlyAvailable: false,
     });
@@ -159,17 +159,15 @@ export const acceptTrip = async ({ body, userId }) => {
   } finally {
   }
 };
-// get current trip details, for only drivers
-export const getCurrentTripDetails = async (userId) => {
-  try {
-    const trip = await tripRepo.findAcceptedTripByRecipientId(userId);
-    // console.log("trip details", trip);
 
-    const tripStop = await tripRepo.getStopsByRecipientId(
+export const getDriverCurrentTripDetails = async (userId) => {
+  try {
+    const trip = await tripRepo.findAcceptedTripByRecipientUser(userId);
+
+    const tripStop = await tripRepo.findTripStopsByRecipient(
       trip[0]._id,
       trip[0].users[0].recipientId
     );
-    // console.log("trip stop", tripStop);
 
     return { trip, tripStop: tripStop[0] };
   } catch (error) {
@@ -177,17 +175,18 @@ export const getCurrentTripDetails = async (userId) => {
   }
 };
 
-export const updateTripStop = async ({ body, userId }) => {
+export const updateTripStopProgress = async ({ body, userId }) => {
   try {
     const { tripId, stopSequence, podImage, status } = body;
-    // Find the trip by and finc receipts and reutthat receipts ids
-    const recipientId = await tripRepo.findTripRecipientId(tripId, userId);
+    const recipientId = await tripRepo.findRecipientIdForTripAndUser(
+      tripId,
+      userId
+    );
     if (!recipientId) {
       throw new Error("Trip not found");
     }
 
-    // Mark the trip stop as updated
-    await tripRepo.updateTripStopStatus(
+    await tripRepo.updateRecipientStopStatus(
       tripId,
       stopSequence,
       podImage,
@@ -203,28 +202,18 @@ export const updateTripStop = async ({ body, userId }) => {
   }
 };
 
-// get all company current trips for company only
-export const getCompanyCurrentTrips = async (userId) => {
+export const listCompanyActiveTrips = async (userId) => {
   try {
-    const trips = await tripRepo.getCompanyCurrentTrips(userId);
-    // console.log("trips", trips);
-
+    const trips = await tripRepo.listCompanyCurrentTrips(userId);
     return trips;
   } catch (error) {
     throw error;
   }
 };
 
-export const getParticularCompanyCurrentTripDetails = async (
-  tripId,
-  userId
-) => {
+export const getCompanyTripDetails = async (tripId, userId) => {
   try {
-    const trip = await tripRepo.getParticularCompanyCurrentTripRepo(
-      tripId,
-      userId
-    );
-    // console.log("trip from service duo", trip);
+    const trip = await tripRepo.getCompanyTripDetailsById(tripId, userId);
     return trip[0];
   } catch (error) {
     throw error;

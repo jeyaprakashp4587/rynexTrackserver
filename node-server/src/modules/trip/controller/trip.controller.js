@@ -5,9 +5,9 @@ import {
   errorResponse,
 } from "../../../shared/utils/response.js";
 
-export const requestTrip = async (req, res) => {
+export const createTripRequest = async (req, res) => {
   try {
-    const result = await tripService.requestTrip({
+    const result = await tripService.createTripRequest({
       body: req.body,
       userId: req.userId,
     });
@@ -29,10 +29,9 @@ export const requestTrip = async (req, res) => {
   }
 };
 
-export const getRequestTrips = async (req, res) => {
+export const listTripRequests = async (req, res) => {
   try {
-    const trips = await tripService.getRequestTrips(req.userId);
-    // console.log("trips", trips);vhv
+    const trips = await tripService.listTripRequests(req.userId);
 
     return successResponse({
       res,
@@ -49,15 +48,11 @@ export const getRequestTrips = async (req, res) => {
   }
 };
 
-export const getParticularRequestedTripDetails = async (req, res) => {
+export const getTripRequestDetails = async (req, res) => {
   try {
     const { tripId } = req.params;
 
-    const trip = await tripService.getParticularRequestedTrip(
-      tripId,
-      req.userId
-    );
-    // console.log("trip ", trip);
+    const trip = await tripService.getTripRequestDetails(tripId, req.userId);
 
     return successResponse({
       res,
@@ -74,9 +69,9 @@ export const getParticularRequestedTripDetails = async (req, res) => {
   }
 };
 
-export const acceptTrip = async (req, res) => {
+export const acceptTripRequest = async (req, res) => {
   try {
-    const result = await tripService.acceptTrip({
+    const result = await tripService.acceptTripRequest({
       body: req.body,
       userId: req.userId,
     });
@@ -86,10 +81,9 @@ export const acceptTrip = async (req, res) => {
   }
 };
 
-// get current particular trip details for driver only
-export const getCurrentTripDetails = async (req, res) => {
+export const getDriverCurrentTripDetails = async (req, res) => {
   try {
-    const trip = await tripService.getCurrentTripDetails(req.userId);
+    const trip = await tripService.getDriverCurrentTripDetails(req.userId);
     return successResponse({
       res,
       statusCode: 200,
@@ -105,30 +99,9 @@ export const getCurrentTripDetails = async (req, res) => {
   }
 };
 
-// get created trip requests or trip , this for users, and owners
-// export const getCreatedTripRequests = async (req, res) => {
-//   try {
-//     const trips = await tripService.getCreatedTripRequests(req.userId);
-//     // console.log("trips", trips);
-//     return successResponse({
-//       res,
-//       data: trips,
-//       message: "Trips fetched successfully",
-//       statusCode: 200,
-//     });
-//   } catch (error) {
-//     return errorResponse({
-//       res,
-//       statusCode: 500,
-//       message: "Failed to get trips",
-//     });
-//   }
-// };
-
-// complete and make as arrived only for drivers
-export const updateTripStop = async (req, res) => {
+export const updateTripStopProgress = async (req, res) => {
   try {
-    const result = await tripService.updateTripStop({
+    const result = await tripService.updateTripStopProgress({
       body: req.body,
       userId: req.userId,
     });
@@ -147,12 +120,9 @@ export const updateTripStop = async (req, res) => {
   }
 };
 
-// get all company current trips for company only
-export const getCompanyCurrentTrips = async (req, res) => {
+export const listCompanyActiveTrips = async (req, res) => {
   try {
-    // console.log("triiger");
-
-    const trips = await tripService.getCompanyCurrentTrips(req.userId);
+    const trips = await tripService.listCompanyActiveTrips(req.userId);
 
     return successResponse({
       res,
@@ -169,15 +139,11 @@ export const getCompanyCurrentTrips = async (req, res) => {
   }
 };
 
-export const getParticularCompanyCurrentTripDetails = async (req, res) => {
+export const getCompanyTripDetails = async (req, res) => {
   try {
     const { tripId } = req.params;
 
-    const trip = await tripService.getParticularCompanyCurrentTripDetails(
-      tripId,
-      req.userId
-    );
-    // console.log("company trip data", trip);
+    const trip = await tripService.getCompanyTripDetails(tripId, req.userId);
 
     return successResponse({
       res,

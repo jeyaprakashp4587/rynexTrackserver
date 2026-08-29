@@ -1,9 +1,9 @@
 import cors from "cors";
 import express from "express";
-import authRoutes from "./routes/authRoutes.js";
-import vehicleRoutes from "./routes/vehicleRoutes.js";
-import companyRoutes from "./routes/companyRoutes.js";
-import driverRoutes from "./routes/driverRoutes.js";
+import authRoutes from "./modules/auth/auth.route.js";
+import vehicleRoutes from "./modules/vehicle/vehicle.route.js";
+import companyRoutes from "./modules/company/company.route.js";
+import driverRoutes from "./modules/driver/driver.route.js";
 import tripRoutes from "./modules/trip/trip.route.js";
 import bodyParser from "body-parser";
 import { register } from "./Monitoring/PrometheusMetrics.js";

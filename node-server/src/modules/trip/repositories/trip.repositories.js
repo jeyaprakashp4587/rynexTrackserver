@@ -3,47 +3,41 @@ import tripRequests from "../models/tripRequests.model.js";
 import TripStops from "../models/tripStops..model.js";
 import { Vehicle } from "../../../models/Vehicle.js";
 import { Driver } from "../../../models/Driver.js";
-import {
-  TRIP_STATUS,
-  TRIP_STOP_STATUS,
-  TRIP_TYPE,
-} from "../constants/trip.constants.js";
+import { TRIP_STATUS, TRIP_TYPE } from "../constants/trip.constants.js";
 
 import {
-  getCompanyCurrentTripsPipeline,
-  getfindAcceptedTripByRecipientPipeline,
-  getParticularCompanyCurrentTripPipeline,
-  getParticularTripPipeline,
-  getRequestTripsPipeline,
-  getStopsByRecipientIdPipeLine,
+  buildCompanyActiveTripsPipeline,
+  buildCompanyTripDetailPipeline,
+  buildDriverCurrentTripPipeline,
+  buildRecipientStopsPipeline,
+  buildTripRequestDetailPipeline,
+  buildTripRequestListPipeline,
 } from "../pipelines/trip.pipelines.js";
 
 import { trip } from "../models/trip.model.js";
 
-export const createTripRequest = async (payload) => {
+export const createTripRequestRecord = async (payload) => {
   const result = await tripRequests.create([payload]);
   return result[0];
 };
 
-export const createTripStops = async (payload) => {
+export const createTripStopRecords = async (payload) => {
   return TripStops.create([payload]);
 };
 
-export const getRequestTrips = async (userId) => {
-  return tripRequests.aggregate(getRequestTripsPipeline(userId));
+export const listTripRequestsByUser = async (userId) => {
+  return tripRequests.aggregate(buildTripRequestListPipeline(userId));
 };
 
-export const getParticularRequestedTrip = async (tripRequestId, userId) => {
+export const getTripRequestDetailById = async (tripRequestId, userId) => {
   const aggregate = tripRequests.aggregate(
-    getParticularTripPipeline(tripRequestId, userId)
+    buildTripRequestDetailPipeline(tripRequestId, userId)
   );
-  // console.log("data", aggregate);
 
   return aggregate;
 };
 
-// trip creation ------------ service repo ---
-export const findPendingTripRequest = async (tripRequestId, userId) => {
+export const findPendingTripRequestForUser = async (tripRequestId, userId) => {
   return tripRequests.findOne({
     _id: tripRequestId,
     status: TRIP_STATUS.PENDING,
@@ -51,8 +45,10 @@ export const findPendingTripRequest = async (tripRequestId, userId) => {
   });
 };
 
-// reassign and re request make to request trip to their drivers
-export const assignTripToDriver = async ({ tripRequestId, recipients }) => {
+export const assignTripToDriverForRequest = async ({
+  tripRequestId,
+  recipients,
+}) => {
   console.log("Recipients from service:", recipients, tripRequestId);
 
   return tripRequests.updateOne(
@@ -73,7 +69,7 @@ export const findTripRequestById = async ({ tripId }) => {
   return tripRequests.findById(tripId);
 };
 
-export const updateTripRequestAccepted = async ({ tripId, userId }) => {
+export const markTripRequestAccepted = async ({ tripId, userId }) => {
   return tripRequests.findOneAndUpdate(
     {
       _id: tripId,
@@ -96,17 +92,17 @@ export const updateTripRequestAccepted = async ({ tripId, userId }) => {
   );
 };
 
-export const findTripByRequestId = async ({ tripRequestId }) => {
+export const findTripByTripRequestId = async ({ tripRequestId }) => {
   return trip.findOne({
     tripRequestId,
   });
 };
 
-export const createTrip = async ({ payload }) => {
+export const createTripRecord = async ({ payload }) => {
   return trip.create([payload], {});
 };
 
-export const addRecipientToTrip = async ({ tripId, recipientData }) => {
+export const addRecipientToTripRecord = async ({ tripId, recipientData }) => {
   return trip.updateOne(
     {
       _id: tripId,
@@ -123,7 +119,7 @@ export const addRecipientToTrip = async ({ tripId, recipientData }) => {
   );
 };
 
-export const updateTripStopsRecipients = async ({
+export const linkTripStopsToRecipient = async ({
   tripRequestId,
   tripId,
   recipientId,
@@ -146,7 +142,7 @@ export const updateTripStopsRecipients = async ({
   );
 };
 
-export const updateVehicleAvailability = async ({
+export const setVehicleAvailability = async ({
   vehicleId,
   currentlyAvailable,
 }) => {
@@ -162,7 +158,7 @@ export const updateVehicleAvailability = async ({
   );
 };
 
-export const updateDriverAvailability = async ({
+export const setDriverAvailability = async ({
   driverId,
   currentlyAvailable,
 }) => {
@@ -177,19 +173,16 @@ export const updateDriverAvailability = async ({
     }
   );
 };
-// trip acceptance allocate end driver only
-export const findAcceptedTripByRecipientId = async (userId) => {
-  return trip.aggregate(getfindAcceptedTripByRecipientPipeline(userId));
-};
-// driver only
-export const getStopsByRecipientId = async (tripId, recipientId) => {
-  return TripStops.aggregate(
-    getStopsByRecipientIdPipeLine(tripId, recipientId)
-  );
+
+export const findAcceptedTripByRecipientUser = async (userId) => {
+  return trip.aggregate(buildDriverCurrentTripPipeline(userId));
 };
 
-// get trip receipts
-export const findTripRecipientId = async (tripId, userId) => {
+export const findTripStopsByRecipient = async (tripId, recipientId) => {
+  return TripStops.aggregate(buildRecipientStopsPipeline(tripId, recipientId));
+};
+
+export const findRecipientIdForTripAndUser = async (tripId, userId) => {
   const tripData = await trip.findOne(
     {
       _id: tripId,
@@ -205,7 +198,7 @@ export const findTripRecipientId = async (tripId, userId) => {
   return tripData?.recipients?.[0]?._id || null;
 };
 
-export const updateTripStopStatus = async (
+export const updateRecipientStopStatus = async (
   tripId,
   stopSequence,
   proofPhotos,
@@ -228,19 +221,18 @@ export const updateTripStopStatus = async (
   );
 };
 
-// get all company current trips for company only
-export const getCompanyCurrentTrips = async (userId) => {
-  return trip.aggregate(getCompanyCurrentTripsPipeline(userId));
+export const listCompanyCurrentTrips = async (userId) => {
+  return trip.aggregate(buildCompanyActiveTripsPipeline(userId));
 };
 
-export const getParticularCompanyCurrentTripRepo = async (tripId, userId) => {
+export const getCompanyTripDetailsById = async (tripId, userId) => {
   try {
     const tripdata = await trip.aggregate(
-      getParticularCompanyCurrentTripPipeline(tripId, userId)
+      buildCompanyTripDetailPipeline(tripId, userId)
     );
     return tripdata;
   } catch (error) {
-    console.error("getParticularCompanyCurrentTrip error:", error);
+    console.error("getCompanyTripDetailsById error:", error);
     throw error;
   }
 };

@@ -3,17 +3,15 @@ import mongoose from "mongoose";
 import { TRIP_STATUS } from "../constants/trip.constants.js";
 import { ROLES } from "../../../shared/constants/role.js";
 
-export const getRequestTripsPipeline = (userId) => {
+export const buildTripRequestListPipeline = (userId) => {
   return [
     {
       $match: {
         $or: [
-          // this filtration for driver, getthier reqiest or owner of they are as receitps
           {
             "recipients.userId": new mongoose.Types.ObjectId(userId),
             "recipients.status": TRIP_STATUS.PENDING,
           },
-          // its for owners for who created the trip request, they can see all their request trips
           {
             createdBy: new mongoose.Types.ObjectId(userId),
             "recipients.status": TRIP_STATUS.PENDING,
@@ -22,7 +20,6 @@ export const getRequestTripsPipeline = (userId) => {
       },
     },
 
-    // trip stops
     {
       $lookup: {
         from: "tripstops",
@@ -36,7 +33,6 @@ export const getRequestTripsPipeline = (userId) => {
       $unwind: "$tripStops",
     },
 
-    // current recipient
     {
       $addFields: {
         currentRecipient: {
@@ -58,7 +54,6 @@ export const getRequestTripsPipeline = (userId) => {
       },
     },
 
-    // creator
     {
       $lookup: {
         from: "users",
@@ -84,14 +79,11 @@ export const getRequestTripsPipeline = (userId) => {
       },
     },
 
-    // driver
     {
       $lookup: {
         from: "drivers",
         localField: "currentRecipient.driverId",
-
         foreignField: "_id",
-
         pipeline: [
           {
             $project: {
@@ -102,7 +94,6 @@ export const getRequestTripsPipeline = (userId) => {
             },
           },
         ],
-
         as: "driver",
       },
     },
@@ -114,15 +105,11 @@ export const getRequestTripsPipeline = (userId) => {
       },
     },
 
-    // vehicle
     {
       $lookup: {
         from: "vehicles",
-
         localField: "currentRecipient.vehicleId",
-
         foreignField: "_id",
-
         pipeline: [
           {
             $project: {
@@ -133,7 +120,6 @@ export const getRequestTripsPipeline = (userId) => {
             },
           },
         ],
-
         as: "vehicle",
       },
     },
@@ -145,15 +131,11 @@ export const getRequestTripsPipeline = (userId) => {
       },
     },
 
-    // final response
     {
       $project: {
         _id: 1,
         createdAt: 1,
         createdBy: 1,
-        // driver: 1,
-        // vehicle: 1,
-        // currentRecipient: 1,
         tripType: 1,
         tripStopMode: 1,
         tripMode: 1,
@@ -164,7 +146,7 @@ export const getRequestTripsPipeline = (userId) => {
   ];
 };
 
-export const getParticularTripPipeline = (tripId, userId) => {
+export const buildTripRequestDetailPipeline = (tripId, userId) => {
   const userObjectId = new mongoose.Types.ObjectId(userId);
 
   return [
@@ -323,8 +305,8 @@ export const getParticularTripPipeline = (tripId, userId) => {
     },
   ];
 };
-// get accept driver current trip detsil (driver only)
-export const getfindAcceptedTripByRecipientPipeline = (recipientId) => {
+
+export const buildDriverCurrentTripPipeline = (recipientId) => {
   return [
     // Find accepted trip
     {
@@ -458,7 +440,7 @@ export const getfindAcceptedTripByRecipientPipeline = (recipientId) => {
   ];
 };
 
-export const getStopsByRecipientIdPipeLine = (tripId, recipientId) => {
+export const buildRecipientStopsPipeline = (tripId, recipientId) => {
   return [
     {
       $match: {
@@ -527,8 +509,8 @@ export const getStopsByRecipientIdPipeLine = (tripId, recipientId) => {
     },
   ];
 };
-// get company current trips (company only) using assignby
-export const getCompanyCurrentTripsPipeline = (userId) => {
+
+export const buildCompanyActiveTripsPipeline = (userId) => {
   return [
     {
       $match: {
@@ -600,10 +582,8 @@ export const getCompanyCurrentTripsPipeline = (userId) => {
   ];
 };
 
-export const getParticularCompanyCurrentTripPipeline = (tripId, userId) => {
-  // console.log("trip id from pipeline", tripId, userId);
+export const buildCompanyTripDetailPipeline = (tripId, userId) => {
   const userObjectId = new mongoose.Types.ObjectId(userId);
-  console.log("trip id from pipeline", tripId, userId);
 
   return [
     { $match: { _id: new mongoose.Types.ObjectId(tripId) } },

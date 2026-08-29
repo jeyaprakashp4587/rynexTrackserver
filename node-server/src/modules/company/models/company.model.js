@@ -1,5 +1,5 @@
 import mongoose from "mongoose";
-import { DB1 } from "../config/db.js";
+import { DB1 } from "../../../config/db.js";
 
 const companySchema = new mongoose.Schema(
   {
@@ -12,7 +12,7 @@ const companySchema = new mongoose.Schema(
       ref: "User",
       required: true,
     },
-    adress: {
+    address: {
       type: String,
     },
     GSTNumber: {
@@ -37,3 +37,4 @@ const companySchema = new mongoose.Schema(
 );
 
 export const Company = DB1.model("Company", companySchema);
+export default Company;

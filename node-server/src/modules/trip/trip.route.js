@@ -1,38 +1,23 @@
 import { Router } from "express";
 import { verifyToken } from "../../middlewares/JWT.js";
 import {
-  acceptTrip,
-  getCompanyCurrentTrips,
-  getCurrentTripDetails,
-  getParticularCompanyCurrentTripDetails,
-  getParticularRequestedTripDetails,
-  getRequestTrips,
-  requestTrip,
+  acceptTripRequest,
+  createTripRequest,
+  getCompanyTripDetails,
+  getDriverCurrentTripDetails,
+  getTripRequestDetails,
+  listCompanyActiveTrips,
+  listTripRequests,
 } from "./controller/trip.controller.js";
 
 const router = Router();
-// /trips/requestTrip
-//create trip request
-router.post("/requestTrip", verifyToken, requestTrip);
-// get trip requests
-router.get("/getRequestTrips", verifyToken, getRequestTrips);
-// get particular Trip details
-router.get(
-  "/getParticularRequestedTripDetails/:tripId",
-  verifyToken,
-  getParticularRequestedTripDetails
-);
-// post trip acceptance
-router.post("/acceptTrip", verifyToken, acceptTrip);
-// get current driver trip details
-router.get("/getCurrentTripDetails", verifyToken, getCurrentTripDetails);
-// get current company trips
-router.get("/getCompanyCurrentTrips", verifyToken, getCompanyCurrentTrips);
-// get particular trip details
-router.get(
-  "/getParticularCompanyCurrentTripDetails/:tripId",
-  verifyToken,
-  getParticularCompanyCurrentTripDetails
-);
+
+router.post("/requests", verifyToken, createTripRequest);
+router.get("/requests", verifyToken, listTripRequests);
+router.get("/requests/:tripId", verifyToken, getTripRequestDetails);
+router.post("/requests/:tripId/accept", verifyToken, acceptTripRequest);
+router.get("/driver/current", verifyToken, getDriverCurrentTripDetails);
+router.get("/company/active", verifyToken, listCompanyActiveTrips);
+router.get("/company/:tripId", verifyToken, getCompanyTripDetails);
 
 export default router;

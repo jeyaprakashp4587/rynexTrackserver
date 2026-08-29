@@ -1,12 +1,10 @@
 import mongoose from "mongoose";
-import { DB1 } from "../config/db.js";
+import { DB1 } from "../../../config/db.js";
 
 const driverSchema = new mongoose.Schema({
   name: String,
   MobileNumber: { type: String, unique: true },
-
   image: String,
-
   isIndependentDriver: {
     type: Boolean,
     default: true,
@@ -30,4 +28,6 @@ const driverSchema = new mongoose.Schema({
     },
   ],
 });
+
 export const Driver = DB1.model("Driver", driverSchema);
+export default Driver;

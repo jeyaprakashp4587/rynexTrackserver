@@ -1,5 +1,5 @@
 import mongoose from "mongoose";
-import { DB1 } from "../config/db.js";
+import { DB1 } from "../../../config/db.js";
 
 const vehicleSchema = new mongoose.Schema(
   {
@@ -43,8 +43,11 @@ const vehicleSchema = new mongoose.Schema(
     timestamps: true,
   }
 );
+
 vehicleSchema.index({
   currentlyAvailable: 1,
   currentLocation: "2dsphere",
 });
+
 export const Vehicle = DB1.model("Vehicle", vehicleSchema);
+export default Vehicle;

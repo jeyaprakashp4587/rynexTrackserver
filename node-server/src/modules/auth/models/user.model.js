@@ -1,11 +1,11 @@
 import mongoose from "mongoose";
-import { DB1 } from "../config/db.js";
-import { ROLES } from "../shared/constants/role.js";
+import { DB1 } from "../../../config/db.js";
+import { ROLES } from "../../../shared/constants/role.js";
 
 const userSchema = new mongoose.Schema(
   {
     Name: {
-      type: "String",
+      type: String,
     },
     MobileNumber: {
       type: String,
@@ -29,3 +29,4 @@ const userSchema = new mongoose.Schema(
 );
 
 export const User = DB1.model("User", userSchema);
+export default User;
