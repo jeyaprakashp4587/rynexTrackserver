@@ -32,7 +32,7 @@ export const requestTrip = async (req, res) => {
 export const getRequestTrips = async (req, res) => {
   try {
     const trips = await tripService.getRequestTrips(req.userId);
-    // console.log("trips", trips);
+    // console.log("trips", trips);vhv
 
     return successResponse({
       res,
