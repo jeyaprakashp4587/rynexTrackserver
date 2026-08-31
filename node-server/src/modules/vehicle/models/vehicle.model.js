@@ -15,6 +15,10 @@ const vehicleSchema = new mongoose.Schema(
     vehicleModel: {
       type: String,
     },
+    pricePerKm: {
+      type: Number,
+      default: 0,
+    },
     currentlyAvailable: {
       type: Boolean,
       default: true,

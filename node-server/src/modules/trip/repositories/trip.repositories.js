@@ -1,8 +1,8 @@
 import mongoose from "mongoose";
 import tripRequests from "../models/tripRequests.model.js";
-import TripStops from "../models/tripStops..model.js";
-import { Vehicle } from "../../../models/Vehicle.js";
-import { Driver } from "../../../models/Driver.js";
+import TripStops from "../models/tripStops.model.js";
+import { Vehicle } from "../../vehicle/models/vehicle.model.js";
+import { Driver } from "../../driver/models/driver.model.js";
 import { TRIP_STATUS, TRIP_TYPE } from "../constants/trip.constants.js";
 
 import {

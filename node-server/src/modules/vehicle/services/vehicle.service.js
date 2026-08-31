@@ -10,6 +10,7 @@ export const createVehicle = async ({
   vehicleImage,
   vehicleModel,
   coordinates,
+  pricePerKm,
   companyId,
 }) => {
   if (!vehicleNumber) {
@@ -20,6 +21,7 @@ export const createVehicle = async ({
     vehicleNumber,
     vehicleImage,
     vehicleModel,
+    pricePerKm,
     coordinates,
     companyId,
   });
@@ -35,6 +37,7 @@ export const createDriverVehicle = async ({
   vehicleImage,
   vehicleModel,
   coordinates,
+  pricePerKm,
   userId,
 }) => {
   if (!vehicleNumber) {
@@ -45,6 +48,7 @@ export const createDriverVehicle = async ({
     vehicleNumber,
     vehicleImage,
     vehicleModel,
+    pricePerKm,
     coordinates,
     userId,
   });

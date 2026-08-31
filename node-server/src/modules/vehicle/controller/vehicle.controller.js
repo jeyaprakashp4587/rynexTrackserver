@@ -16,6 +16,7 @@ export const createCompanyVehicle = async (req, res) => {
       vehicleImage: req.body.vehicleImage,
       vehicleModel: req.body.vehicleModel,
       coordinates: req.body.coordinates,
+      pricePerKm: req.body.pricePerKm,
       companyId: req.body.companyId,
     });
 
@@ -59,6 +60,7 @@ export const createDriverVehicleProfile = async (req, res) => {
       vehicleImage: req.body.vehicleImage,
       vehicleModel: req.body.vehicleModel,
       coordinates: req.body.coordinates,
+      pricePerKm: req.body.pricePerKm,
       userId: req.userId,
     });
 
