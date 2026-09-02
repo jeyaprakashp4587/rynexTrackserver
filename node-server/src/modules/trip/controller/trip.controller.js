@@ -69,13 +69,39 @@ export const getTripRequestDetails = async (req, res) => {
   }
 };
 
-export const acceptTripRequest = async (req, res) => {
+export const acceptTripRequestForOwner = async (req, res) => {
   try {
-    const result = await tripService.acceptTripRequest({
-      body: req.body,
+    const result = await tripService.acceptTripRequestForOwner({
+      body: { ...req.body, tripId: req.params.tripId || req.body.tripId },
       userId: req.userId,
+      tripId: req.params.tripId,
     });
-    return successResponse({ res, statusCode: 200, message: result.message });
+
+    return successResponse({
+      res,
+      statusCode: 200,
+      message: result.message,
+      data: result.trip,
+    });
+  } catch (error) {
+    return errorResponse({ res, statusCode: 500, message: error.message });
+  }
+};
+
+export const acceptTripRequestForDriver = async (req, res) => {
+  try {
+    const result = await tripService.acceptTripRequestForDriver({
+      body: { ...req.body, tripId: req.params.tripId || req.body.tripId },
+      userId: req.userId,
+      tripId: req.params.tripId,
+    });
+
+    return successResponse({
+      res,
+      statusCode: 200,
+      message: result.message,
+      data: result.trip,
+    });
   } catch (error) {
     return errorResponse({ res, statusCode: 500, message: error.message });
   }

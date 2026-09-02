@@ -1,7 +1,7 @@
 import * as tripRepo from "../repositories/trip.repositories.js";
 import { formatRecipients } from "../utils/formatRecipients.js";
 import { formatTripStop } from "../utils/formatTripStop.js";
-import { TRIP_STATUS, TRIP_TYPE } from "../constants/trip.constants.js";
+import { TRIP_STATUS } from "../constants/trip.constants.js";
 import mongoose from "mongoose";
 
 export const createTripRequest = async ({ body, userId }) => {
@@ -36,51 +36,66 @@ export const getTripRequestDetails = async (tripId, userId) => {
   return trip[0];
 };
 
-export const acceptTripRequest = async ({ body, userId }) => {
-  const { recipients, tripId } = body;
+export const acceptTripRequestForOwner = async ({
+  body,
+  userId,
+  tripId: routeTripId,
+}) => {
+  const tripId = body?.tripId || routeTripId;
+  const { recipients } = body;
 
-  console.log("Recipients received:", recipients);
+  if (!tripId) {
+    throw new Error("Trip ID is required");
+  }
 
   try {
-    let formattedRecipients = [];
-
-    if (recipients?.length) {
-      formattedRecipients = formatRecipients(recipients, userId);
-    }
-
-    const tripRequest = await tripRepo.findTripRequestById({
-      tripId,
-    });
-
-    console.log("Trip request:", tripRequest);
+    const tripRequest = await tripRepo.findTripRequestById({ tripId });
 
     if (!tripRequest) {
       throw new Error("Trip request not found");
     }
 
-    if (tripRequest.tripType === TRIP_TYPE.COMPANY) {
-      console.log("Trip request type:", tripRequest.tripType);
+    const formattedRecipients = recipients?.length
+      ? formatRecipients(recipients, userId)
+      : [];
 
-      const assignmentResult = await tripRepo.assignTripToDriverForRequest({
-        tripRequestId: tripId,
-        recipients: formattedRecipients,
-      });
+    const assignmentResult = await tripRepo.assignTripToDriverForRequest({
+      tripRequestId: tripId,
+      recipients: formattedRecipients,
+    });
 
-      console.log("Trip assignment result:", assignmentResult);
-
-      if (!assignmentResult || assignmentResult.matchedCount <= 0) {
-        return {
-          message: "Trip assignment failed",
-        };
-      }
-
+    if (!assignmentResult || assignmentResult.matchedCount <= 0) {
       return {
-        message: "Trip assigned successfully",
-        trip: tripRequest,
+        message: "Trip assignment failed",
       };
     }
 
-    console.log("Independent driver flow");
+    return {
+      message: "Trip assigned successfully",
+      trip: tripRequest,
+    };
+  } catch (error) {
+    throw error;
+  }
+};
+
+export const acceptTripRequestForDriver = async ({
+  body,
+  userId,
+  tripId: routeTripId,
+}) => {
+  const tripId = body?.tripId || routeTripId;
+
+  if (!tripId) {
+    throw new Error("Trip ID is required");
+  }
+
+  try {
+    const tripRequest = await tripRepo.findTripRequestById({ tripId });
+
+    if (!tripRequest) {
+      throw new Error("Trip request not found");
+    }
 
     const currentRecipient = tripRequest?.recipients?.find(
       (recipient) => recipient.userId.toString() === userId.toString()
@@ -156,7 +171,6 @@ export const acceptTripRequest = async ({ body, userId }) => {
     };
   } catch (error) {
     throw error;
-  } finally {
   }
 };
 
