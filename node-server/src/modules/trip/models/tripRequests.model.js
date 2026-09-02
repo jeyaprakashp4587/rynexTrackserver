@@ -71,7 +71,7 @@ const tripRequests = new mongoose.Schema({
   },
   tripType: {
     type: String,
-    enum: [TRIP_TYPE.COMPANY, TRIP_TYPE.INDEPENDENT],
+    enum: [TRIP_TYPE.COMPANY, TRIP_TYPE.INDEPENDENT, TRIP_TYPE.HYBRID],
     default: TRIP_TYPE.INDEPENDENT,
   },
   tripStopMode: {

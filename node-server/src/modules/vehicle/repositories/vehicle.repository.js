@@ -1,7 +1,7 @@
 import { Company } from "../../company/models/company.model.js";
 import { Driver } from "../../driver/models/driver.model.js";
 import { Vehicle } from "../models/vehicle.model.js";
-import { buildNearbyVehiclesPipeline } from "../pipelines/nearbyVehicles.pipeline.js";
+import { buildNearbyVehiclesPipeline } from "../pipelines/vehicles.pipeline.js";
 
 export const createVehicleRecord = async ({
   vehicleNumber,

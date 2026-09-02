@@ -82,6 +82,21 @@ export const buildNearbyVehiclesPipeline = ({ lat, lon, radiusKm = 50 }) => {
         ownerId: { $ifNull: ["$owner._id", null] },
         ownerName: { $ifNull: ["$owner.Name", null] },
         ownerMobile: { $ifNull: ["$owner.MobileNumber", null] },
+        userId: {
+          $switch: {
+            branches: [
+              {
+                case: { $eq: [{ $ifNull: ["$company", null] }, null] },
+                then: "$driver.driverUserId",
+              },
+              {
+                case: { $eq: ["$driver.isIndependentDriver", true] },
+                then: "$driver.driverUserId",
+              },
+            ],
+            default: "$owner._id",
+          },
+        },
         pricePerKm: { $ifNull: ["$pricePerKm", 0] },
         bookingType: {
           $switch: {

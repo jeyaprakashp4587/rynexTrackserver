@@ -13,6 +13,7 @@ export const TRIP_STATUS = {
 export const TRIP_TYPE = {
   COMPANY: "COMPANY_TRIP",
   INDEPENDENT: "INDEPENDENT_TRIP",
+  HYBRID: "HYBRID_TRIP",
 };
 
 export const ROLES = {
