@@ -22,7 +22,6 @@ const start = async () => {
   // Socket.io
   const io = await initSocket(server, { pubClient, subClient });
 
-  // Start pub/sub subscriber which will forward events to event router
   startSubscriber(subClient, io).catch((err) =>
     logger.error("subscriber:start", err.message)
   );
@@ -41,6 +40,10 @@ const start = async () => {
       subClient.quit().catch(() => {}),
     ]).catch(() => {});
     process.exit(0);
+    if (pubClient && subClient) {
+      io.adapter(createAdapter(pubClient, subClient));
+      logger.info("socket:adapter", "redis adapter configured");
+    }
   };
 
   process.on("SIGTERM", shutdown);

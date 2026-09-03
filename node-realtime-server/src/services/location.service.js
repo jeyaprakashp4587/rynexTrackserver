@@ -14,7 +14,13 @@ const updateDriverLocation = async ({
   const client = await createMainClient();
   try {
     // GEOADD expects longitude first
-    await client.geoAdd(GEO_KEY, { longitude, latitude, member: driverId });
+    await client.sendCommand([
+      "GEOADD",
+      GEO_KEY,
+      String(longitude),
+      String(latitude),
+      driverId,
+    ]);
     // refresh heartbeat
     await heartbeatService.touchHeartbeat(driverId);
     logger.info("location:update", `driver ${driverId} location updated`, {
@@ -31,10 +37,10 @@ const updateDriverLocation = async ({
 
 const getDriverLocation = async (driverId) => {
   const client = await createMainClient();
-  const res = await client.geoPos(GEO_KEY, driverId);
-  return res && res[0]
-    ? { longitude: res[0].longitude, latitude: res[0].latitude }
-    : null;
+  const res = await client.sendCommand(["GEOPOS", GEO_KEY, driverId]);
+  if (!res || !res[0]) return null;
+  const [lon, lat] = res[0];
+  return { longitude: Number(lon), latitude: Number(lat) };
 };
 
 export default { updateDriverLocation, getDriverLocation };
