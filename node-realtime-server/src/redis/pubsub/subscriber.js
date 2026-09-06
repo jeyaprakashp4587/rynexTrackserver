@@ -15,7 +15,7 @@ export const startSubscriber = async (subClient, io) => {
   );
   logger.info("pubsub:subscriber", "subscribed to channels");
 };
-
+// update
 const handleMessage = (io, message) => {
   try {
     const parsed = JSON.parse(message);
