@@ -3,6 +3,8 @@ import { formatRecipients } from "../utils/formatRecipients.js";
 import { formatTripStop } from "../utils/formatTripStop.js";
 import { TRIP_STATUS } from "../constants/trip.constants.js";
 import mongoose from "mongoose";
+import { sendMessage } from "../../../kafka/index.js";
+import { TOPIC_TRIP_CREATED, buildTripCreated } from "../events/trip.events.js";
 
 export const createTripRequest = async ({ body, userId }) => {
   const { data } = body;
@@ -24,6 +26,12 @@ export const createTripRequest = async ({ body, userId }) => {
     tripRequestId: tripRequest._id,
     stops: formattedStops,
   });
+  // publish trip.created event
+  try {
+    await sendMessage(TOPIC_TRIP_CREATED, buildTripCreated(tripRequest));
+  } catch (e) {
+    console.warn("Failed to publish trip.created event:", e.message || e);
+  }
   return tripRequest;
 };
 
