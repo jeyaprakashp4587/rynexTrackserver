@@ -35,6 +35,7 @@ export const sendMessage = async (topic, message) => {
     typeof message === "string" ? message : JSON.stringify(message);
   return producer.send({ topic, messages: [{ value: payload }] });
 };
+// jnjn
 
 export default {
   initKafka,
