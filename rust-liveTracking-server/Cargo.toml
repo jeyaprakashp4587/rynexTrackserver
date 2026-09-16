@@ -15,5 +15,5 @@ uuid = { version = "1", features = ["v4"] }
 jsonwebtoken = "9.0"
 futures = "0.3"
 tokio-stream = "0.1"
-redis = { version = "0.23", features = ["aio"] }
+redis = { version = "0.32", features = ["aio", "tokio-comp"] }
 chrono = { version = "0.4", features = ["alloc", "std", "serde"] }
