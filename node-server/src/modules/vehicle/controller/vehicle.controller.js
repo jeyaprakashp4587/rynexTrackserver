@@ -18,6 +18,7 @@ export const createCompanyVehicle = async (req, res) => {
       coordinates: req.body.coordinates,
       pricePerKm: req.body.pricePerKm,
       companyId: req.body.companyId,
+      vehicleType: req.body.vehicleType,
     });
 
     return successResponse({
@@ -62,6 +63,7 @@ export const createDriverVehicleProfile = async (req, res) => {
       coordinates: req.body.coordinates,
       pricePerKm: req.body.pricePerKm,
       userId: req.userId,
+      vehicleType: req.body.vehicleType,
     });
 
     return successResponse({
@@ -85,6 +87,7 @@ export const findNearbyVehicles = async (req, res) => {
       lat: req.query.lat,
       lon: req.query.lon,
       radiusKm: req.query.radiusKm,
+      vehicleType: req.query.vehicleType,
     });
 
     return successResponse({

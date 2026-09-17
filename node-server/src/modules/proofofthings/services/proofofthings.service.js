@@ -1,4 +1,4 @@
-import kafka from "../../kafka/index.js";
+import kafka from "../../../kafka/index.js";
 
 export const submitProof = async (payload) => {
   const topic = "proofs.submitted";

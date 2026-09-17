@@ -1,7 +1,8 @@
-export const buildNearbyVehiclesPipeline = ({ lat, lon, radiusKm = 50 }) => {
-  const maxDistance = Number(radiusKm) * 1000;
+import mongoose from "mongoose";
 
-  return [
+export const buildNearbyVehiclesPipeline = ({ lat, lon, radiusKm = 50, vehicleType }) => {
+  const maxDistance = Number(radiusKm) * 1000;
+  const pipeline = [
     {
       $geoNear: {
         near: {
@@ -16,6 +17,17 @@ export const buildNearbyVehiclesPipeline = ({ lat, lon, radiusKm = 50 }) => {
         },
       },
     },
+  ];
+
+  if (vehicleType) {
+    pipeline.push({
+      $match: {
+        vehicleType: new mongoose.Types.ObjectId(String(vehicleType)),
+      },
+    });
+  }
+
+  pipeline.push(
     {
       $lookup: {
         from: "drivers",
@@ -59,12 +71,29 @@ export const buildNearbyVehiclesPipeline = ({ lat, lon, radiusKm = 50 }) => {
       },
     },
     {
+      $lookup: {
+        from: "vehicletype",
+        localField: "vehicleType",
+        foreignField: "_id",
+        as: "vehicleTypeInfo",
+      },
+    },
+    {
+      $unwind: {
+        path: "$vehicleTypeInfo",
+        preserveNullAndEmptyArrays: true,
+      },
+    },
+    {
       $project: {
         _id: "$_id",
         vehicleId: "$_id",
         vehicleNumber: 1,
         vehicleModel: 1,
         vehicleImage: 1,
+        vehicleType: { $ifNull: ["$vehicleTypeInfo._id", "$vehicleType"] },
+        vehicleTypeName: { $ifNull: ["$vehicleTypeInfo.name", null] },
+        seatCapacity: { $ifNull: ["$vehicleTypeInfo.seatCapacity", 1] },
         currentLocation: 1,
         distanceKm: {
           $round: [{ $divide: ["$distanceInMeters", 1000] }, 2],
@@ -122,5 +151,7 @@ export const buildNearbyVehiclesPipeline = ({ lat, lon, radiusKm = 50 }) => {
     {
       $sort: { distanceKm: 1 },
     },
-  ];
+  );
+
+  return pipeline;
 };

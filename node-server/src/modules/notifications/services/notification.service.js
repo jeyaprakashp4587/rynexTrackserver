@@ -1,4 +1,4 @@
-import kafka from "../../kafka/index.js";
+import kafka from "../../../kafka/index.js";
 
 export const sendNotification = async (payload) => {
   const topic = "notifications.created";

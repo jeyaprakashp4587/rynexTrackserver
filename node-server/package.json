@@ -7,7 +7,7 @@
   "scripts": {
     "dev": "nodemon server.js",
     "start": "node server.js",
-    "seed": "node src/seeds/seed.js",
+    "seed": "node src/seeds/vehicleType.seed.js",
     "worker": "nodemon src/modules/trip/queues/trip.worker.js"
   },
   "keywords": [

@@ -27,6 +27,10 @@ const vehicleSchema = new mongoose.Schema(
       type: mongoose.Schema.Types.ObjectId,
       ref: "Driver",
     },
+    vehicleType: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "VehicleType",
+    },
     currentLocation: {
       type: {
         type: String,

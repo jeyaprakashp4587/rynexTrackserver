@@ -1,6 +1,18 @@
-import { redis } from "../../config/redis.config.js";
+import { redis } from "../config/redis.config.js";
 
 export const redisService = {
+  async getOrSet(key, fetcher, ttl = 3600) {
+    const cachedValue = await this.get(key);
+
+    if (cachedValue !== null) {
+      return cachedValue;
+    }
+
+    const value = await fetcher();
+    await this.set(key, value, ttl);
+    return value;
+  },
+
   async set(key, value, ttl = null) {
     const data = JSON.stringify(value);
 

@@ -12,6 +12,7 @@ export const createVehicle = async ({
   coordinates,
   pricePerKm,
   companyId,
+  vehicleType,
 }) => {
   if (!vehicleNumber) {
     throw new Error("Vehicle number is required");
@@ -24,6 +25,7 @@ export const createVehicle = async ({
     pricePerKm,
     coordinates,
     companyId,
+    vehicleType,
   });
 };
 
@@ -39,6 +41,7 @@ export const createDriverVehicle = async ({
   coordinates,
   pricePerKm,
   userId,
+  vehicleType,
 }) => {
   if (!vehicleNumber) {
     throw new Error("Vehicle number is required");
@@ -51,9 +54,15 @@ export const createDriverVehicle = async ({
     pricePerKm,
     coordinates,
     userId,
+    vehicleType,
   });
 };
 
-export const findNearbyVehicleOptions = async ({ lat, lon, radiusKm }) => {
-  return findNearbyVehicles({ lat, lon, radiusKm });
+export const findNearbyVehicleOptions = async ({
+  lat,
+  lon,
+  radiusKm,
+  vehicleType,
+}) => {
+  return findNearbyVehicles({ lat, lon, radiusKm, vehicleType });
 };

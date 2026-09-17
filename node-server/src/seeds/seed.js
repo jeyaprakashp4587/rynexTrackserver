@@ -3,6 +3,7 @@ import { User } from "../modules/auth/models/user.model.js";
 import { Company } from "../modules/company/models/company.model.js";
 import { Driver } from "../modules/driver/models/driver.model.js";
 import { Vehicle } from "../modules/vehicle/models/vehicle.model.js";
+import { VehicleType } from "../modules/vehicle/models/vehicleType.model.js";
 
 const seed = async () => {
   try {
@@ -65,12 +66,66 @@ const seed = async () => {
     });
 
     // =========================
+    // VEHICLE TYPES
+    // =========================
+    await VehicleType.deleteMany({});
+    const vehicleTypes = await VehicleType.insertMany([
+      {
+        name: "Car",
+        vehicleImage:
+          "https://images.unsplash.com/photo-1492144534655-ae79c964c9d7",
+        seatCapacity: 4,
+      },
+      {
+        name: "Tata Ace",
+        vehicleImage:
+          "https://images.unsplash.com/photo-1553440569-bcc63803a83d",
+        seatCapacity: 3,
+      },
+      {
+        name: "Dost",
+        vehicleImage:
+          "https://images.unsplash.com/photo-1580273916550-e323be2ae537",
+        seatCapacity: 2,
+      },
+      {
+        name: "Mini Cab",
+        vehicleImage:
+          "https://images.unsplash.com/photo-1549399542-7e3f8b79c341",
+        seatCapacity: 4,
+      },
+      {
+        name: "Passenger Van",
+        vehicleImage:
+          "https://images.unsplash.com/photo-1511919884226-fd3cad34687c",
+        seatCapacity: 10,
+      },
+      {
+        name: "Passenger Auto",
+        vehicleImage:
+          "https://images.unsplash.com/photo-1552519507-da3b142c6e3d",
+        seatCapacity: 3,
+      },
+    ]);
+
+    const carTypeId = vehicleTypes.find(
+      (vehicleType) => vehicleType.name === "Car"
+    )?._id;
+    const tataAceTypeId = vehicleTypes.find(
+      (vehicleType) => vehicleType.name === "Tata Ace"
+    )?._id;
+    const dostTypeId = vehicleTypes.find(
+      (vehicleType) => vehicleType.name === "Dost"
+    )?._id;
+
+    // =========================
     // VEHICLES (CHENNAI COORDS)
     // =========================
     const vehicle1 = await Vehicle.create({
       vehicleNumber: "TN01AB1111",
       vehicleModel: "Tata Ace",
       vehicleImage: "https://picsum.photos/200",
+      vehicleType: tataAceTypeId,
       currentlyAvailable: true,
       currentDriver: independentDriver._id,
       currentLocation: {
@@ -83,6 +138,7 @@ const seed = async () => {
       vehicleNumber: "TN01AB2222",
       vehicleModel: "Ashok Leyland",
       vehicleImage: "https://picsum.photos/200",
+      vehicleType: carTypeId,
       currentlyAvailable: true,
       currentDriver: companyDriver1._id,
       companyId: company._id,
@@ -96,6 +152,7 @@ const seed = async () => {
       vehicleNumber: "TN01AB3333",
       vehicleModel: "Mini Truck",
       vehicleImage: "https://picsum.photos/200",
+      vehicleType: dostTypeId,
       currentlyAvailable: true,
       currentDriver: companyDriver2._id,
       companyId: company._id,

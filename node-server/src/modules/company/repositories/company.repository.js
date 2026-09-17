@@ -1,4 +1,5 @@
 import { Company } from "../models/company.model.js";
+import { companyCache } from "../cache/company.cache.js";
 
 export const createCompanyRecord = async ({
   companyName,
@@ -15,5 +16,10 @@ export const createCompanyRecord = async ({
 };
 
 export const findCompanyByOwner = async (ownerId) => {
-  return Company.findOne({ owner: ownerId }, { drivers: 0, vehicles: 0 });
+  return companyCache.getByOwner(
+    ownerId,
+    () =>
+      Company.findOne({ owner: ownerId }, { drivers: 0, vehicles: 0 }).lean(),
+    3600
+  );
 };

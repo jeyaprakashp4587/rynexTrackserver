@@ -1,4 +1,4 @@
-import kafka from "../../kafka/index.js";
+import kafka from "../../../kafka/index.js";
 
 export const createInvoice = async (payload) => {
   const topic = "invoices.created";
