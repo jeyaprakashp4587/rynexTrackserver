@@ -20,8 +20,13 @@ export const vehicleCache = {
     );
   },
 
-  async getNearbyVehicleDrivers({ latitude, longitude, radiusKm = 20 }) {
-    const key = vehicleCacheKeys.GEO.VEHICLES("mini_truck");
+  async getNearbyVehicleDrivers({
+    latitude,
+    longitude,
+    radiusKm = 20,
+    vehicleType,
+  }) {
+    const key = vehicleCacheKeys.GEO.VEHICLES(vehicleType);
 
     const vehicles = await redis.geosearch(
       key,
