@@ -6,7 +6,7 @@ export const BROKERS = (process.env.KAFKA_BROKERS || "localhost:9092")
 
 export const REPLICATION_FACTOR =
   Number(process.env.KAFKA_REPLICATION_FACTOR) || 1;
-
+// update
 export const PARTITIONS = {
   TRIP: Number(process.env.KAFKA_PARTITIONS_TRIP) || 3,
   DRIVER: Number(process.env.KAFKA_PARTITIONS_DRIVER) || 3,
