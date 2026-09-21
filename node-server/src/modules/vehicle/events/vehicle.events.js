@@ -5,3 +5,18 @@ export const buildVehicleUpdated = (vehicle) => ({
   data: vehicle,
   timestamp: new Date().toISOString(),
 });
+
+export const handleVehicleEvent = async (payload) => {
+  const parsed =
+    typeof payload?.value === "string"
+      ? JSON.parse(payload.value)
+      : payload?.value || payload;
+
+  console.log("Vehicle Kafka event received:", parsed);
+  return parsed;
+};
+
+export default {
+  handleVehicleEvent,
+  buildVehicleUpdated,
+};

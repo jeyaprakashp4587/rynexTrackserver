@@ -12,3 +12,19 @@ export const buildTripUpdated = (trip) => ({
   data: trip,
   timestamp: new Date().toISOString(),
 });
+
+export const handleTripEvent = async (payload) => {
+  const parsed =
+    typeof payload?.value === "string"
+      ? JSON.parse(payload.value)
+      : payload?.value || payload;
+
+  console.log("Trip Kafka event received:", parsed);
+  return parsed;
+};
+
+export default {
+  handleTripEvent,
+  buildTripCreated,
+  buildTripUpdated,
+};

@@ -11,7 +11,7 @@ const server = http.createServer(app);
 const startServer = async () => {
   try {
     await DB1;
-    // initialize kafka producer/consumer if configured
+
     try {
       await initKafka();
       console.log("Kafka initialized");

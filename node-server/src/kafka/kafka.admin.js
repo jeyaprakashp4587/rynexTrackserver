@@ -34,6 +34,11 @@ export const createTopicsIfNotExist = async (overrides = {}) => {
     rf
   );
   pushIfMissing(
+    TOPICS.COMPANY,
+    overrides.partitions?.company ?? PARTITIONS.DRIVER,
+    rf
+  );
+  pushIfMissing(
     TOPICS.PAYMENT,
     overrides.partitions?.payment ?? PARTITIONS.PAYMENT,
     rf
@@ -41,6 +46,26 @@ export const createTopicsIfNotExist = async (overrides = {}) => {
   pushIfMissing(
     TOPICS.FLEET,
     overrides.partitions?.fleet ?? PARTITIONS.FLEET,
+    rf
+  );
+  pushIfMissing(
+    TOPICS.VEHICLE,
+    overrides.partitions?.vehicle ?? PARTITIONS.VEHICLE,
+    rf
+  );
+  pushIfMissing(
+    TOPICS.NOTIFICATION,
+    overrides.partitions?.notification ?? PARTITIONS.NOTIFICATION,
+    rf
+  );
+  pushIfMissing(
+    TOPICS.INVOICE,
+    overrides.partitions?.invoice ?? PARTITIONS.INVOICE,
+    rf
+  );
+  pushIfMissing(
+    TOPICS.PROOF,
+    overrides.partitions?.proof ?? PARTITIONS.PROOF,
     rf
   );
 
