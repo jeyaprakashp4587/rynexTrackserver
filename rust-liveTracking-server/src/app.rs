@@ -1,12 +1,14 @@
-// use axum::{
-//     routing::get,Router
-// };
+use actix_web::{web, HttpResponse};
 
-// use crate::{
-//     routes,
-//     state::AppState
-// }:
+pub fn configure(cfg: &mut web::ServiceConfig) {
+	cfg.route("/", web::get().to(index))
+	   .route("/health", web::get().to(health));
+}
 
-// pub fn create_app(state: AppState) -> Router {
-//     Router::new().router(routes::routes(state))
-// }
+async fn index() -> HttpResponse {
+	HttpResponse::Ok().body("Actix server running")
+}
+
+async fn health() -> HttpResponse {
+	HttpResponse::Ok().body("OK")
+}

@@ -5,7 +5,8 @@ edition = "2024"
 
 [dependencies]
 tokio = { version = "1.41", features = ["full"] }
-axum = "0.7"
+actix-web = "4"
+actix-rt = "2"
 serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0"
 tracing = "0.1"
@@ -17,3 +18,4 @@ futures = "0.3"
 tokio-stream = "0.1"
 redis = { version = "0.32", features = ["aio", "tokio-comp"] }
 chrono = { version = "0.4", features = ["alloc", "std", "serde"] }
+env_logger = "0.10"
