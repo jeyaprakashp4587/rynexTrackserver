@@ -13,7 +13,7 @@ import { register } from "./Monitoring/PrometheusMetrics.js";
 import { httpMetricsMiddleware } from "./middlewares/metricsMiddleware.js";
 
 const app = express();
-// promclient.collectDefaultMetrics({ timeout: 5000 });
+// promclient.collectDefaultMetrics({ timeoujnt: 5000 });
 
 app.use(express.json());
 app.use(cors({ origin: "*", methods: ["GET", "POST", "PUT", "DELETE"] }));
