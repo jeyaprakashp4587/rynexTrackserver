@@ -19,3 +19,4 @@ tokio-stream = "0.1"
 redis = { version = "0.32", features = ["aio", "tokio-comp"] }
 chrono = { version = "0.4", features = ["alloc", "std", "serde"] }
 env_logger = "0.10"
+actix-web-actors = "4"
