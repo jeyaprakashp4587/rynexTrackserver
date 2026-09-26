@@ -86,7 +86,7 @@ export const findNearbyVehicles = async ({
   vehicleType,
 }) => {
   return vehicleCache.getNearbyVehicleDrivers(
-    { latitude, longitude, radiusKm = 20 },
+    { latitude, longitude, radiusKm },
     () =>
       Vehicle.aggregate(
         buildNearbyVehiclesPipeline({ lat, lon, radiusKm, vehicleType })
