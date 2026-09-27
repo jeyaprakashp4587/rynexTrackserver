@@ -9,9 +9,15 @@ const driverSchema = new mongoose.Schema({
     type: Boolean,
     default: true,
   },
-  currentlyAvailable: {
-    type: Boolean,
-    default: true,
+  availability: {
+    type: String,
+    enum: ["AVAILABLE", "UNAVAILABLE"],
+    default: "AVAILABLE",
+  },
+  tripStatus: {
+    type: String,
+    enum: ["IDLE", "ON_TRIP"],
+    default: "IDLE",
   },
   driverUserId: {
     type: mongoose.Schema.Types.ObjectId,

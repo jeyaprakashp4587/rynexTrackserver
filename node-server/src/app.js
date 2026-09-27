@@ -16,7 +16,13 @@ const app = express();
 // promclient.collectDefaultMetrics({ timeoujnt: 5000 });
 
 app.use(express.json());
-app.use(cors({ origin: "*", methods: ["GET", "POST", "PUT", "DELETE"] }));
+app.use(
+  cors({
+    origin: "*",
+    methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
+    allowedHeaders: ["Content-Type", "Authorization"],
+  })
+);
 app.use(bodyParser.urlencoded({ extended: true }));
 
 app.get("/metrics", async (req, res) => {

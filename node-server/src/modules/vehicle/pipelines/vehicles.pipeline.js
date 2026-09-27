@@ -1,6 +1,11 @@
 import mongoose from "mongoose";
 
-export const buildNearbyVehiclesPipeline = ({ lat, lon, radiusKm = 50, vehicleType }) => {
+export const buildNearbyVehiclesPipeline = ({
+  lat,
+  lon,
+  radiusKm = 50,
+  vehicleType,
+}) => {
   const maxDistance = Number(radiusKm) * 1000;
   const pipeline = [
     {
@@ -150,7 +155,7 @@ export const buildNearbyVehiclesPipeline = ({ lat, lon, radiusKm = 50, vehicleTy
     },
     {
       $sort: { distanceKm: 1 },
-    },
+    }
   );
 
   return pipeline;

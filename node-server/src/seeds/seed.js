@@ -126,7 +126,7 @@ const seed = async () => {
       vehicleModel: "Tata Ace",
       vehicleImage: "https://picsum.photos/200",
       vehicleType: tataAceTypeId,
-      currentlyAvailable: true,
+      availability: "AVAILABLE",
       currentDriver: independentDriver._id,
       currentLocation: {
         type: "Point",
@@ -139,7 +139,7 @@ const seed = async () => {
       vehicleModel: "Ashok Leyland",
       vehicleImage: "https://picsum.photos/200",
       vehicleType: carTypeId,
-      currentlyAvailable: true,
+      availability: "AVAILABLE",
       currentDriver: companyDriver1._id,
       companyId: company._id,
       currentLocation: {
@@ -153,7 +153,7 @@ const seed = async () => {
       vehicleModel: "Mini Truck",
       vehicleImage: "https://picsum.photos/200",
       vehicleType: dostTypeId,
-      currentlyAvailable: true,
+      availability: "AVAILABLE",
       currentDriver: companyDriver2._id,
       companyId: company._id,
       currentLocation: {

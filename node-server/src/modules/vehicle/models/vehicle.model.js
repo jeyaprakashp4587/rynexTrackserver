@@ -19,9 +19,10 @@ const vehicleSchema = new mongoose.Schema(
       type: Number,
       default: 0,
     },
-    currentlyAvailable: {
-      type: Boolean,
-      default: true,
+    availability: {
+      type: String,
+      enum: ["AVAILABLE", "UNAVAILABLE"],
+      default: "AVAILABLE",
     },
     currentDriver: {
       type: mongoose.Schema.Types.ObjectId,
@@ -53,7 +54,7 @@ const vehicleSchema = new mongoose.Schema(
 );
 
 vehicleSchema.index({
-  currentlyAvailable: 1,
+  availability: 1,
   currentLocation: "2dsphere",
 });
 
