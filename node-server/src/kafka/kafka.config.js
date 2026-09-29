@@ -1,5 +1,5 @@
 export const CLIENT_ID = process.env.KAFKA_CLIENT_ID || "rynzo-api";
-export const BROKERS = (process.env.KAFKA_BROKERS || "localhost:9092")
+export const BROKERS = (process.env.KAFKA_BROKERS || "http://192.168.1.23:9092")
   .split(",")
   .map((b) => b.trim())
   .filter(Boolean);

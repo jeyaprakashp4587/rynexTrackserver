@@ -1,22 +1,33 @@
 [package]
-name = "rust-server"
+name = "rust-live-tracking-server"
 version = "0.1.0"
-edition = "2024"
+edition = "2021"
 
 [dependencies]
-tokio = { version = "1.41", features = ["full"] }
-actix-web = "4"
-actix-rt = "2"
+actix-web = "4.9"
+actix-ws = "0.3.0"
 serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0"
-tracing = "0.1"
-tracing-subscriber = "0.3"
-anyhow = "1.0"
-uuid = { version = "1", features = ["v4"] }
+tokio = { version = "1.43", features = ["full"] }
+redis = { version = "0.29.5", features = ["aio", "tokio-comp", "connection-manager"] }
+uuid = { version = "1.11", features = ["v4"] }
 jsonwebtoken = "9.0"
+tracing = "0.1"
+tracing-subscriber = { version = "0.3", features = ["env-filter"] }
+thiserror = "2.0"
+anyhow = "1.0"
+dotenvy = "0.15"
+tokio-util = { version = "0.7", features = ["rt", "time"] }
+chrono = { version = "0.4", features = ["serde"] }
 futures = "0.3"
+async-trait = "0.1"
 tokio-stream = "0.1"
-redis = { version = "0.32", features = ["aio", "tokio-comp"] }
-chrono = { version = "0.4", features = ["alloc", "std", "serde"] }
-env_logger = "0.10"
-actix-web-actors = "4"
+
+[dev-dependencies]
+actix-rt = "2.10"
+
+[profile.dev]
+panic = "abort"
+
+[profile.release]
+panic = "abort"

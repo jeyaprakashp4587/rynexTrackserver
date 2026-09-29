@@ -1,29 +1,26 @@
-use actix_web::{App, HttpServer, web};
-use std::sync::Arc;
+use actix_web::{App, HttpServer};
+use anyhow::Result;
 
-mod app;
-mod state;
-
-use state::AppState;
+use rust_live_tracking_server::app_state::AppState;
+use rust_live_tracking_server::config::Config;
+use rust_live_tracking_server::shutdown::install_shutdown_token;
+use rust_live_tracking_server::telemetry::init_telemetry;
+use rust_live_tracking_server::transport::http::configure;
 
 #[actix_web::main]
-async fn main() -> std::io::Result<()> {
-    env_logger::init();
-
-    let redis_url = std::env::var("REDIS_URL").unwrap_or_else(|_| "redis://127.0.0.1/".into());
-    let redis_client = redis::Client::open(redis_url.as_str()).expect("Failed to create Redis client");
-
-    let app_state = Arc::new(AppState::new(redis_client));
-
-    let addr = "127.0.0.1:8080";
-    println!("Starting Actix server at http://{}", addr);
+async fn main() -> Result<()> {
+    init_telemetry();
+    let config = Config::from_env()?;
+    let shutdown = install_shutdown_token();
+    let app_state = AppState::new(config.clone(), shutdown).await?;
 
     HttpServer::new(move || {
         App::new()
-            .app_data(web::Data::from(app_state.clone()))
-            .configure(app::configure)
+            .app_data(actix_web::web::Data::new(app_state.clone()))
+            .configure(configure)
     })
-    .bind(addr)?
+    .bind(&config.bind_addr)?
     .run()
-    .await
+    .await?;
+    Ok(())
 }

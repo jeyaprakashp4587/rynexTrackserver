@@ -1,0 +1,29 @@
+version: "3.9"
+
+services:
+  redis:
+    image: redis:7-alpine
+    container_name: rynex-redis
+    command: ["redis-server", "--appendonly", "no"]
+    ports:
+      - "6379:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  app:
+    build:
+      context: .
+    container_name: rynex-live-tracking
+    environment:
+      REDIS_URL: redis://redis:6379/0
+      JWT_SECRET: change-me-in-production
+      BIND_ADDR: 0.0.0.0:8080
+    ports:
+      - "8080:8080"
+    depends_on:
+      redis:
+        condition: service_healthy
+    restart: unless-stopped
