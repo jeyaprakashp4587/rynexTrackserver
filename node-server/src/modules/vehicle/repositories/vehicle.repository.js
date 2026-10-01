@@ -73,10 +73,39 @@ export const createDriverVehicleRecord = async ({
     },
   });
 
-  await Driver.findByIdAndUpdate(userId, { $push: { vehicles: vehicle._id } });
-  await Vehicle.findByIdAndUpdate(vehicle._id, { currentDriver: userId });
+  const driver = await Driver.findOneAndUpdate(
+    { driverUserId: userId },
+    { $push: { vehicles: vehicle._id } },
+    { new: true }
+  );
+
+  if (!driver) {
+    throw new Error("Driver profile not found");
+  }
+
+  await Vehicle.findByIdAndUpdate(vehicle._id, { currentDriver: driver._id });
+  await vehicleCache.invalidateDriverVehicles(userId);
 
   return vehicle;
+};
+
+export const getDriverVehicles = async (userId) => {
+  return vehicleCache.getDriverVehicles(
+    userId,
+    () =>
+      Driver.findOne({ driverUserId: userId })
+        .populate("vehicles", {
+          vehicleNumber: 1,
+          vehicleImage: 1,
+          vehicleModel: 1,
+          pricePerKm: 1,
+          vehicleType: 1,
+          currentLocation: 1,
+          availability: 1,
+        })
+        .lean(),
+    3600
+  );
 };
 
 export const findNearbyVehicles = async ({
@@ -86,7 +115,7 @@ export const findNearbyVehicles = async ({
   vehicleType,
 }) => {
   return vehicleCache.getNearbyVehicleDrivers(
-    { latitude, longitude, radiusKm },
+    { latitude: lat, longitude: lon, radiusKm, vehicleType },
     () =>
       Vehicle.aggregate(
         buildNearbyVehiclesPipeline({ lat, lon, radiusKm, vehicleType })

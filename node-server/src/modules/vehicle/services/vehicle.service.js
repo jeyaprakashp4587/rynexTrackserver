@@ -3,6 +3,7 @@ import {
   createVehicleRecord,
   findNearbyVehicles,
   getCompanyVehicles,
+  getDriverVehicles,
 } from "../repositories/vehicle.repository.js";
 
 export const createVehicle = async ({
@@ -32,6 +33,11 @@ export const createVehicle = async ({
 export const getCompanyVehicleList = async (userId) => {
   const companyVehicles = await getCompanyVehicles(userId);
   return companyVehicles?.vehicles || [];
+};
+
+export const getDriverVehicleList = async (userId) => {
+  const driver = await getDriverVehicles(userId);
+  return driver?.vehicles || [];
 };
 
 export const createDriverVehicle = async ({

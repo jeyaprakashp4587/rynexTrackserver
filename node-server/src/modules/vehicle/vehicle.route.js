@@ -5,6 +5,7 @@ import {
   createDriverVehicleProfile,
   findNearbyVehicles,
   getMyCompanyVehicles,
+  getMyDriverVehicles,
 } from "./controller/vehicle.controller.js";
 import {
   createVehicleTypeEntry,
@@ -15,6 +16,7 @@ const router = express.Router();
 
 router.post("/company/create", verifyToken, createCompanyVehicle);
 router.get("/company/list", verifyToken, getMyCompanyVehicles);
+router.get("/driver/list", verifyToken, getMyDriverVehicles);
 router.post("/driver/create", verifyToken, createDriverVehicleProfile);
 router.get("/nearby", findNearbyVehicles);
 router.post("/types/create", verifyToken, createVehicleTypeEntry);

@@ -7,6 +7,7 @@ import {
   createVehicle,
   findNearbyVehicleOptions,
   getCompanyVehicleList,
+  getDriverVehicleList,
 } from "../services/vehicle.service.js";
 
 export const createCompanyVehicle = async (req, res) => {
@@ -50,6 +51,34 @@ export const getMyCompanyVehicles = async (req, res) => {
       res,
       statusCode: 500,
       message: error.message || "Failed to retrieve company vehicles",
+    });
+  }
+};
+
+export const getMyDriverVehicles = async (req, res) => {
+  try {
+    const userId = req.userId || req.query.userId || req.body?.userId;
+
+    if (!userId) {
+      return errorResponse({
+        res,
+        statusCode: 400,
+        message: "User ID is required to fetch driver vehicles",
+      });
+    }
+
+    const vehicles = await getDriverVehicleList(userId);
+    return successResponse({
+      res,
+      statusCode: 200,
+      message: "Driver vehicles retrieved successfully",
+      data: vehicles,
+    });
+  } catch (error) {
+    return errorResponse({
+      res,
+      statusCode: 500,
+      message: error.message || "Failed to retrieve driver vehicles",
     });
   }
 };

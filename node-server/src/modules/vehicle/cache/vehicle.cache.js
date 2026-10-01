@@ -20,6 +20,14 @@ export const vehicleCache = {
     );
   },
 
+  async getDriverVehicles(userId, fetcher, ttl = 3600) {
+    return redisService.getOrSet(
+      vehicleCacheKeys.VEHICLE.DRIVER_VEHICLES(userId),
+      fetcher,
+      ttl
+    );
+  },
+
   async getNearbyVehicleDrivers({
     latitude,
     longitude,
@@ -40,7 +48,7 @@ export const vehicleCache = {
       "WITHCOORD"
     );
 
-    return members.map(([id, distance, coords]) => ({
+    return vehicles.map(([id, distance, coords]) => ({
       driverId: id,
       distanceKm: Number(distance),
       latitude: Number(coords[1]),
@@ -50,5 +58,9 @@ export const vehicleCache = {
 
   async invalidateCompanyVehicles(ownerId) {
     await redisService.del(vehicleCacheKeys.VEHICLE.COMPANY_VEHICLES(ownerId));
+  },
+
+  async invalidateDriverVehicles(userId) {
+    await redisService.del(vehicleCacheKeys.VEHICLE.DRIVER_VEHICLES(userId));
   },
 };
