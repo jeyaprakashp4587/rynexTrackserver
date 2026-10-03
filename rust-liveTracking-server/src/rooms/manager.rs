@@ -77,12 +77,9 @@ impl RoomManager {
             speed: location.speed,
             ts: location.ts,
         };
-        let senders = self.registry.room_members(&room);
-        let shared = Arc::new(msg);
-        for sender in senders {
-            let sender_conn = sender.clone();
-            let _ = sender_conn.try_send(shared.clone());
-        }
+        // local fanout
+        self.fanout(&room, msg.clone());
+        // ensure redis subscription exists
         let _ = self.sub_tx.send(SubCmd::Subscribe(room.as_str().to_string()));
     }
 

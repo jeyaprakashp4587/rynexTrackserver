@@ -1,9 +1,5 @@
-use std::collections::HashSet;
-use std::time::Duration;
-
 use anyhow::Result;
 use tokio::sync::mpsc;
-use tokio::time::sleep;
 
 use crate::domain::messages::ServerMsg;
 use crate::rooms::manager::RoomManager;
@@ -19,55 +15,39 @@ pub struct RedisSubscriber {
 
 impl RedisSubscriber {
     pub fn new(client: RedisClient, sub_rx: mpsc::UnboundedReceiver<SubCmd>, room_manager: RoomManager) -> Self {
-        Self {
-            client,
-            sub_rx,
-            room_manager,
-        }
+        Self { client, sub_rx, room_manager }
     }
 
+    /// Run a simple loop: subscribe/unsubscribe as requested and forward messages to room manager.
     pub async fn run(mut self) -> Result<()> {
-        let mut active_channels: HashSet<String> = HashSet::new();
-        let mut backoff = Duration::from_millis(250);
+        let mut pubsub = self.client.get_pubsub().await?;
 
-        loop {
-            let mut pubsub = match self.client.get_pubsub().await {
-                Ok(value) => value,
-                Err(err) => {
-                    tracing::warn!(error = %err, "redis pubsub reconnecting");
-                    sleep(backoff).await;
-                    backoff = backoff.saturating_mul(2).min(Duration::from_secs(5));
-                    continue;
-                }
-            };
-
-            while let Some(cmd) = self.sub_rx.recv().await {
-                match cmd {
-                    SubCmd::Subscribe(channel) => {
-                        if active_channels.insert(channel.clone()) {
-                            pubsub.subscribe(channel).await?;
-                        }
-                    }
-                    SubCmd::Unsubscribe(channel) => {
-                        if active_channels.remove(&channel) {
-                            pubsub.unsubscribe(channel).await?;
+        // spawn a task to read redis messages and fanout to rooms
+        let reader = {
+            let room_manager = self.room_manager.clone();
+            tokio::spawn(async move {
+                let mut on_message = pubsub.on_message();
+                while let Some(msg) = on_message.next().await {
+                    if let Ok(payload) = msg.get_payload::<String>() {
+                        if let Ok(server_msg) = serde_json::from_str::<ServerMsg>(&payload) {
+                            if let Some(trip_id) = server_msg.trip_id() {
+                                room_manager.fanout(&crate::domain::ids::RoomId::new(format!("trip:{trip_id}")), server_msg);
+                            }
                         }
                     }
                 }
+            })
+        };
+
+        // handle subscribe/unsubscribe commands
+        while let Some(cmd) = self.sub_rx.recv().await {
+            match cmd {
+                SubCmd::Subscribe(channel) => { let _ = pubsub.subscribe(channel).await; }
+                SubCmd::Unsubscribe(channel) => { let _ = pubsub.unsubscribe(channel).await; }
             }
-
-            let _ = pubsub;
-            break;
         }
 
+        let _ = reader.await;
         Ok(())
-    }
-
-    pub async fn handle_redis_message(&self, payload: &str) {
-        if let Ok(msg) = serde_json::from_str::<ServerMsg>(payload) {
-            if let Some(trip_id) = msg.trip_id() {
-                self.room_manager.fanout(&crate::domain::ids::RoomId::new(format!("trip:{trip_id}")), msg);
-            }
-        }
     }
 }
