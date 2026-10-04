@@ -1,26 +1,48 @@
-use actix_web::{App, HttpServer};
-use anyhow::Result;
+mod app;
+mod config;
+mod errors;
+mod handlers;
+mod models;
+mod services;
+mod socket;
+mod state;
 
-use rust_live_tracking_server::app_state::AppState;
-use rust_live_tracking_server::config::Config;
-use rust_live_tracking_server::shutdown::install_shutdown_token;
-use rust_live_tracking_server::telemetry::init_telemetry;
-use rust_live_tracking_server::transport::http::configure;
+use std::io;
+
+use actix_web::{middleware::Logger, web, App, HttpServer};
+
+use crate::config::Settings;
+use crate::state::AppState;
 
 #[actix_web::main]
-async fn main() -> Result<()> {
-    init_telemetry();
-    let config = Config::from_env()?;
-    let shutdown = install_shutdown_token();
-    let app_state = AppState::new(config.clone(), shutdown).await?;
+async fn main() -> io::Result<()> {
+    dotenvy::dotenv().ok();
+    env_logger::init_from_env(env_logger::Env::default().default_filter_or("info"));
+
+    let settings = Settings::from_env();
+    let bind_addr = (settings.host.clone(), settings.port);
+
+    let state = AppState::build(settings)
+        .await
+        .map_err(|e| io::Error::new(io::ErrorKind::Other, e.to_string()))?;
+
+    services::subscriber::spawn(
+        state.redis_client.clone(),
+        state.rooms.clone(),
+        state.settings.redis.clone(),
+    );
+
+    let data = web::Data::new(state);
+
+    log::info!("listening on {}:{}", bind_addr.0, bind_addr.1);
 
     HttpServer::new(move || {
         App::new()
-            .app_data(actix_web::web::Data::new(app_state.clone()))
-            .configure(configure)
+            .app_data(data.clone())
+            .wrap(Logger::default())
+            .configure(app::configure)
     })
-    .bind(&config.bind_addr)?
+    .bind(bind_addr)?
     .run()
-    .await?;
-    Ok(())
+    .await
 }

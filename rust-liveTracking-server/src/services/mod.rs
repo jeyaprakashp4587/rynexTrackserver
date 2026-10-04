@@ -1,1 +1,2 @@
-pub mod trip_authorizer;
+pub mod publisher;
+pub mod subscriber;

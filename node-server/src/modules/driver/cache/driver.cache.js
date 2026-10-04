@@ -17,12 +17,4 @@ export const driverCache = {
       ttl
     );
   },
-
-  async getLocation(driverId, fetcher, ttl = 120) {
-    return redisService.getOrSet(
-      driverCacheKeys.DRIVER.LOCATION(driverId),
-      fetcher,
-      ttl
-    );
-  },
 };
