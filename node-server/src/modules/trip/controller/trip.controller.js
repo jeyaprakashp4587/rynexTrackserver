@@ -91,7 +91,6 @@ export const acceptTripRequestForOwner = async (req, res) => {
 export const acceptTripRequestForDriver = async (req, res) => {
   try {
     const result = await tripService.acceptTripRequestForDriver({
-      body: { ...req.body, tripId: req.params.tripId || req.body.tripId },
       userId: req.userId,
       tripId: req.params.tripId,
     });

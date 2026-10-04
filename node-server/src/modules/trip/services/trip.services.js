@@ -87,13 +87,7 @@ export const acceptTripRequestForOwner = async ({
   }
 };
 
-export const acceptTripRequestForDriver = async ({
-  body,
-  userId,
-  tripId: routeTripId,
-}) => {
-  const tripId = body?.tripId || routeTripId;
-
+export const acceptTripRequestForDriver = async ({ userId, tripId }) => {
   if (!tripId) {
     throw new Error("Trip ID is required");
   }
