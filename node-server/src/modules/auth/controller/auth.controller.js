@@ -32,6 +32,7 @@ export const register = async (req, res) => {
 
 export const login = async (req, res) => {
   try {
+    consoe.log("req.body", req.body);
     const result = await loginUser(req.body);
     return successResponse({
       res,

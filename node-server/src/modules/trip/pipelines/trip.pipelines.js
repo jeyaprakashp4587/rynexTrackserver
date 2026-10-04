@@ -9,12 +9,16 @@ export const buildTripRequestListPipeline = (userId) => {
       $match: {
         $or: [
           {
-            "recipients.userId": new mongoose.Types.ObjectId(userId),
-            "recipients.status": TRIP_STATUS.PENDING,
+            $and: [
+              { "recipients.userId": new mongoose.Types.ObjectId(userId) },
+              { "recipients.status": TRIP_STATUS.PENDING },
+            ],
           },
           {
-            createdBy: new mongoose.Types.ObjectId(userId),
-            "recipients.status": TRIP_STATUS.PENDING,
+            $and: [
+              { createdBy: new mongoose.Types.ObjectId(userId) },
+              { "recipients.status": TRIP_STATUS.PENDING },
+            ],
           },
         ],
       },
@@ -40,7 +44,17 @@ export const buildTripRequestListPipeline = (userId) => {
             input: "$recipients",
             as: "recipient",
             cond: {
-              $eq: ["$$recipient.userId", new mongoose.Types.ObjectId(userId)],
+              $and: [
+                {
+                  $eq: [
+                    "$$recipient.userId",
+                    new mongoose.Types.ObjectId(userId),
+                  ],
+                },
+                {
+                  $eq: ["$$recipient.status", TRIP_STATUS.PENDING],
+                },
+              ],
             },
           },
         },
