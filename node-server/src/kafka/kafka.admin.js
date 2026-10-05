@@ -1,102 +1,58 @@
-import kafka from "./kafka.client.js";
-import { TOPICS, PARTITIONS, REPLICATION_FACTOR } from "./kafka.config.js";
+import { requireKafka } from "./kafka.client.js";
+import { PARTITIONS, REPLICATION_FACTOR, TOPICS } from "./kafka.config.js";
+import logger from "./kafka.logger.js";
 
-let adminClient = null;
-
-export const getAdmin = () => adminClient;
+const resolveTopics = (overrides) =>
+  Object.entries(TOPICS).map(([domain, topic]) => ({
+    topic,
+    numPartitions:
+      overrides.partitions?.[domain.toLowerCase()] ?? PARTITIONS[domain],
+  }));
 
 export const createTopicsIfNotExist = async (overrides = {}) => {
-  if (!kafka) throw new Error("Kafka client not configured");
-
-  adminClient = kafka.admin();
-  await adminClient.connect();
-
-  const existing = await adminClient.listTopics();
-
-  const topicsToCreate = [];
-
-  const pushIfMissing = (name, partitions, replicationFactor) => {
-    if (!existing.includes(name)) {
-      topicsToCreate.push({
-        topic: name,
-        numPartitions: partitions,
-        replicationFactor,
-      });
-    }
-  };
-
-  const rf = overrides.replicationFactor ?? REPLICATION_FACTOR;
-
-  pushIfMissing(TOPICS.TRIP, overrides.partitions?.trip ?? PARTITIONS.TRIP, rf);
-  pushIfMissing(
-    TOPICS.DRIVER,
-    overrides.partitions?.driver ?? PARTITIONS.DRIVER,
-    rf
-  );
-  pushIfMissing(
-    TOPICS.COMPANY,
-    overrides.partitions?.company ?? PARTITIONS.DRIVER,
-    rf
-  );
-  pushIfMissing(
-    TOPICS.PAYMENT,
-    overrides.partitions?.payment ?? PARTITIONS.PAYMENT,
-    rf
-  );
-  pushIfMissing(
-    TOPICS.FLEET,
-    overrides.partitions?.fleet ?? PARTITIONS.FLEET,
-    rf
-  );
-  pushIfMissing(
-    TOPICS.VEHICLE,
-    overrides.partitions?.vehicle ?? PARTITIONS.VEHICLE,
-    rf
-  );
-  pushIfMissing(
-    TOPICS.NOTIFICATION,
-    overrides.partitions?.notification ?? PARTITIONS.NOTIFICATION,
-    rf
-  );
-  pushIfMissing(
-    TOPICS.INVOICE,
-    overrides.partitions?.invoice ?? PARTITIONS.INVOICE,
-    rf
-  );
-  pushIfMissing(
-    TOPICS.PROOF,
-    overrides.partitions?.proof ?? PARTITIONS.PROOF,
-    rf
-  );
-
-  if (topicsToCreate.length === 0) {
-    return { created: [], skipped: Object.keys(TOPICS) };
-  }
+  const admin = requireKafka().admin();
+  await admin.connect();
 
   try {
-    const created = await adminClient.createTopics({
-      topics: topicsToCreate,
-      waitForLeaders: true,
-    });
-    return { created: topicsToCreate, result: created };
-  } catch (err) {
-    // If topics already exist concurrently, don't crash the app
-    if (err && err.type === "TOPIC_ALREADY_EXISTS") {
-      return { created: [], warning: "some topics already existed" };
-    }
-    throw err;
-  }
-};
+    const [existing, cluster] = await Promise.all([
+      admin.listTopics(),
+      admin.describeCluster(),
+    ]);
 
-export const disconnectAdmin = async () => {
-  if (adminClient) {
-    await adminClient.disconnect();
-    adminClient = null;
+    const requested = overrides.replicationFactor ?? REPLICATION_FACTOR;
+    const replicationFactor = Math.min(requested, cluster.brokers.length);
+
+    if (replicationFactor < requested) {
+      logger.warn(
+        `Replication factor lowered from ${requested} to ${replicationFactor} (brokers available: ${cluster.brokers.length})`
+      );
+    }
+
+    const topics = resolveTopics(overrides);
+    const missing = topics
+      .filter(({ topic }) => !existing.includes(topic))
+      .map((topic) => ({ ...topic, replicationFactor }));
+    const skipped = topics
+      .filter(({ topic }) => existing.includes(topic))
+      .map(({ topic }) => topic);
+
+    if (missing.length === 0) {
+      return { created: [], skipped };
+    }
+
+    try {
+      await admin.createTopics({ topics: missing, waitForLeaders: true });
+    } catch (error) {
+      if (error?.type !== "TOPIC_ALREADY_EXISTS") throw error;
+      logger.warn("Some topics were created concurrently by another instance");
+    }
+
+    return { created: missing.map(({ topic }) => topic), skipped };
+  } finally {
+    await admin.disconnect().catch(() => {});
   }
 };
 
 export default {
-  getAdmin,
   createTopicsIfNotExist,
-  disconnectAdmin,
 };

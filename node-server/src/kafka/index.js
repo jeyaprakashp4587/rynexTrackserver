@@ -1,44 +1,41 @@
-import admin from "./kafka.admin.js";
-import producer from "./kafka.producer.js";
-import { disconnectAllConsumers, startAllConsumers } from "./kafka.consumer.js";
+import { KAFKA_ENABLED } from "./kafka.config.js";
+import { ensureTopics } from "./kafka.client.js";
+import {
+  connectProducer,
+  disconnectProducer,
+  publishEvent,
+} from "./kafka.producer.js";
+import { startAllConsumers, stopAllConsumers } from "./kafka.consumer.js";
 
-export const initKafka = async (opts = {}) => {
-  // Connect producer and ensure topics exist. Do not expose raw producer/consumer.
-  try {
-    await producer.connectProducer();
-  } catch (err) {
-    console.error("Failed to connect Kafka producer:", err.message || err);
-    throw err;
+export { publishEvent };
+
+export const sendMessage = publishEvent;
+
+export const initKafka = async () => {
+  if (!KAFKA_ENABLED) {
+    console.info("Kafka is disabled. Set KAFKA_ENABLED=true to enable it.");
+    return { enabled: false };
   }
 
+  await connectProducer();
+
   try {
-    await admin.createTopicsIfNotExist(opts.topicOptions || {});
-  } catch (err) {
+    await ensureTopics();
+  } catch (error) {
     console.warn(
       "Failed to create or verify Kafka topics:",
-      err.message || err
+      error.message || error
     );
   }
 
-  try {
-    await startAllConsumers();
-  } catch (err) {
-    console.warn("Failed to start Kafka consumers:", err.message || err);
-  }
-};
+  await startAllConsumers();
 
-export const publishEvent = async (topic, event) => {
-  return producer.publishEvent(topic, event);
-};
-
-export const sendMessage = async (topic, event) => {
-  return publishEvent(topic, event);
+  return { enabled: true };
 };
 
 export const shutdownKafka = async () => {
-  await disconnectAllConsumers();
-  await producer.disconnectProducer();
-  await admin.disconnectAdmin();
+  await stopAllConsumers();
+  await disconnectProducer();
 };
 
 export default {

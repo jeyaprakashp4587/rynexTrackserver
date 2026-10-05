@@ -1,45 +1,63 @@
 import kafka from "./kafka.client.js";
+import { KAFKA_ENABLED } from "./kafka.config.js";
 
-let producer = null;
+const KEY_FIELDS = [
+  "tripId",
+  "paymentId",
+  "driverId",
+  "fleetId",
+  "customerId",
+  "id",
+];
 
-export const connectProducer = async () => {
-  if (!kafka) throw new Error("Kafka client not configured");
-  if (producer) return producer;
-  producer = kafka.producer();
-  await producer.connect();
-  return producer;
+let producerPromise = null;
+
+export const connectProducer = () => {
+  if (!producerPromise) {
+    const producer = kafka.producer({
+      idempotent: true,
+      maxInFlightRequests: 1,
+    });
+
+    producerPromise = producer
+      .connect()
+      .then(() => producer)
+      .catch((error) => {
+        producerPromise = null;
+        throw error;
+      });
+  }
+
+  return producerPromise;
 };
 
 export const disconnectProducer = async () => {
-  if (producer) {
-    await producer.disconnect();
-    producer = null;
-  }
+  if (!producerPromise) return;
+
+  const producer = await producerPromise;
+  producerPromise = null;
+  await producer.disconnect();
 };
 
-const deriveKey = (event) => {
-  if (!event || !event.data) return undefined;
-  const d = event.data;
-  return (
-    d.tripId || d.paymentId || d.driverId || d.fleetId || d.customerId || d.id
-  );
+const getKey = (event) => {
+  const data = event?.data;
+  const field = data && KEY_FIELDS.find((name) => data[name] != null);
+  return field ? String(data[field]) : undefined;
 };
 
 export const publishEvent = async (topic, event) => {
-  if (!producer)
-    throw new Error("Kafka producer not connected. Call connectProducer().");
+  if (!KAFKA_ENABLED) return null;
 
-  const key = deriveKey(event);
-  const value = typeof event === "string" ? event : JSON.stringify(event);
+  const producer = await connectProducer();
 
-  const message = { value };
-  if (key) message.key = String(key);
-
-  return producer.send({ topic, messages: [message] });
-};
-
-export default {
-  connectProducer,
-  disconnectProducer,
-  publishEvent,
+  return producer.send({
+    topic,
+    acks: -1,
+    messages: [
+      {
+        key: getKey(event),
+        value: typeof event === "string" ? event : JSON.stringify(event),
+      },
+    ],
+  });
 };

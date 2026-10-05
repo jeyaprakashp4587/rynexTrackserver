@@ -1,11 +1,45 @@
 import { Kafka } from "kafkajs";
+import {
+  BROKERS,
+  CLIENT_ID,
+  KAFKA_ENABLED,
+  PARTITIONS,
+  REPLICATION_FACTOR,
+  SASL,
+  SSL,
+  TOPICS,
+} from "./kafka.config.js";
 
-const clientId = process.env.KAFKA_CLIENT_ID || "rynzo-api";
-const brokers = (process.env.KAFKA_BROKERS || "http://192.168.1.23:9092")
-  .split(",")
-  .map((b) => b.trim())
-  .filter(Boolean);
+const kafka = KAFKA_ENABLED
+  ? new Kafka({ clientId: CLIENT_ID, brokers: BROKERS, ssl: SSL, sasl: SASL })
+  : null;
 
-const kafka = new Kafka({ clientId, brokers });
+export const ensureTopics = async () => {
+  const admin = kafka.admin();
+  await admin.connect();
+
+  try {
+    const [existing, cluster] = await Promise.all([
+      admin.listTopics(),
+      admin.describeCluster(),
+    ]);
+
+    const topics = Object.values(TOPICS)
+      .filter((topic) => !existing.includes(topic))
+      .map((topic) => ({
+        topic,
+        numPartitions: PARTITIONS,
+        replicationFactor: Math.min(REPLICATION_FACTOR, cluster.brokers.length),
+      }));
+
+    if (topics.length) {
+      await admin.createTopics({ topics, waitForLeaders: true });
+    }
+
+    return topics.map(({ topic }) => topic);
+  } finally {
+    await admin.disconnect();
+  }
+};
 
 export default kafka;
