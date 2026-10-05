@@ -26,7 +26,6 @@ export const createTripStopRecords = async (payload) => {
 };
 
 export const listTripRequestsByUser = async (userId) => {
-  console.log("userId from service:", userId);
   return tripRequests.aggregate(buildTripRequestListPipeline(userId));
 };
 

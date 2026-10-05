@@ -31,7 +31,6 @@ export const createTripRequest = async (req, res) => {
 
 export const listTripRequests = async (req, res) => {
   try {
-    cosole.log("userId from controller:", req.userId);
     const trips = await tripService.listTripRequests(req.userId);
 
     return successResponse({

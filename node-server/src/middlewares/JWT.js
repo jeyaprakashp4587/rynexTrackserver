@@ -27,7 +27,7 @@ export const createRefreshToken = async (user) => {
 // verify token middleware
 export const verifyToken = async (req, res, next) => {
   const token = req.headers.authorization?.split(" ")[1];
-  console.log("toekn", token);
+  // console.log("toekn", token);
 
   if (!token) return res.status(401).json({ msg: "No token provided" });
   try {
