@@ -61,6 +61,41 @@ export const onBoardingDriver = async (req, res) => {
     });
   }
 };
+export const changeAvailabilityStatus = async (req, res) => {
+  try {
+    const { availability } = req.body;
+    await updateAvailabilityStatus(req.userId, availability);
+    return successResponse({
+      res,
+      statusCode: 200,
+      message: "Availability status updated successfully",
+    });
+  } catch (error) {
+    return errorResponse({
+      statusCode: 500,
+      res,
+      message: error.message || "Failed to update availability status",
+    });
+  }
+};
+
+export const changeTripStatus = async (req, res) => {
+  try {
+    const { tripStatus } = req.body;
+    await updateTripStatus(req.userId, tripStatus);
+    return successResponse({
+      res,
+      statusCode: 200,
+      message: "Trip status updated successfully",
+    });
+  } catch (error) {
+    return errorResponse({
+      statusCode: 500,
+      res,
+      message: error.message || "Failed to update trip status",
+    });
+  }
+};
 
 export const getMyCompanyDrivers = async (req, res) => {
   try {

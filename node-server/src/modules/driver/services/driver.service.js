@@ -63,3 +63,22 @@ export const getCompanyDrivers = async (userId) => {
 
   return company.drivers;
 };
+
+export const changeAvailabilityStatus = async (
+  userId,
+  newAvailabilityStatus
+) => {
+  const update = await changeAvailabilityStatus(userId, newAvailabilityStatus);
+  if (!update) {
+    throw new Error("Failed to update availability status");
+  }
+  return update;
+};
+
+export const changeTripStatus = async (userId, newTripStatus) => {
+  const update = await changeTripStatus(userId, newTripStatus);
+  if (!update) {
+    throw new Error("Failed to update trip status");
+  }
+  return update;
+};

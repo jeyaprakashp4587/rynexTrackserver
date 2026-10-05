@@ -69,3 +69,34 @@ export const createIndependentDriver = async ({
     },
   });
 };
+
+export const changeAvailabilityStatus = async (
+  userId,
+  newAvailabilityStatus
+) => {
+  const update = await Driver.findOneAndUpdate(
+    { driverUserId: userId },
+    { availability: newAvailabilityStatus },
+    { new: true }
+  );
+
+  if (!update) {
+    throw new Error("Failed to update availability status");
+  }
+
+  return update;
+};
+
+export const changeTripStatus = async (userId, newTripStatus) => {
+  const update = await Driver.findOneAndUpdate(
+    { driverUserId: userId },
+    { tripStatus: newTripStatus },
+    { new: true }
+  );
+
+  if (!update) {
+    throw new Error("Failed to update trip status");
+  }
+
+  return update;
+};

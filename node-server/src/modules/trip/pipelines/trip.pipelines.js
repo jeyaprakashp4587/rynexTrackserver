@@ -4,21 +4,27 @@ import { TRIP_STATUS } from "../constants/trip.constants.js";
 import { ROLES } from "../../../shared/constants/role.js";
 
 export const buildTripRequestListPipeline = (userId) => {
+  const userObjectId = new mongoose.Types.ObjectId(userId);
   return [
     {
       $match: {
         $or: [
           {
-            $and: [
-              { "recipients.userId": new mongoose.Types.ObjectId(userId) },
-              { "recipients.status": TRIP_STATUS.PENDING },
-            ],
+            recipients: {
+              $elemMatch: {
+                userId: userObjectId,
+                status: TRIP_STATUS.PENDING,
+              },
+            },
           },
+
           {
-            $and: [
-              { createdBy: new mongoose.Types.ObjectId(userId) },
-              { "recipients.status": TRIP_STATUS.PENDING },
-            ],
+            createdBy: userObjectId,
+            recipients: {
+              $elemMatch: {
+                status: TRIP_STATUS.PENDING,
+              },
+            },
           },
         ],
       },
@@ -40,19 +46,42 @@ export const buildTripRequestListPipeline = (userId) => {
     {
       $addFields: {
         currentRecipient: {
-          $filter: {
-            input: "$recipients",
-            as: "recipient",
-            cond: {
-              $and: [
-                {
-                  $eq: [
-                    "$$recipient.userId",
-                    new mongoose.Types.ObjectId(userId),
-                  ],
+          $let: {
+            vars: {
+              userPendingRecipient: {
+                $filter: {
+                  input: "$recipients",
+                  as: "recipient",
+                  cond: {
+                    $and: [
+                      {
+                        $eq: ["$$recipient.userId", userObjectId],
+                      },
+                      {
+                        $eq: ["$$recipient.status", TRIP_STATUS.PENDING],
+                      },
+                    ],
+                  },
                 },
+              },
+            },
+
+            in: {
+              $cond: [
                 {
-                  $eq: ["$$recipient.status", TRIP_STATUS.PENDING],
+                  $gt: [{ $size: "$$userPendingRecipient" }, 0],
+                },
+
+                "$$userPendingRecipient",
+
+                {
+                  $filter: {
+                    input: "$recipients",
+                    as: "recipient",
+                    cond: {
+                      $eq: ["$$recipient.status", TRIP_STATUS.PENDING],
+                    },
+                  },
                 },
               ],
             },
@@ -149,12 +178,22 @@ export const buildTripRequestListPipeline = (userId) => {
       $project: {
         _id: 1,
         createdAt: 1,
+
         createdBy: 1,
+
         tripType: 1,
         tripStopMode: 1,
         tripMode: 1,
+
         stops: "$tripStops",
+
         status: 1,
+
+        currentRecipient: 1,
+
+        driver: 1,
+
+        vehicle: 1,
       },
     },
   ];
