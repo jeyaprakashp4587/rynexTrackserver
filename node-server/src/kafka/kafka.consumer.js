@@ -68,7 +68,7 @@ export const startAllConsumers = async () => {
     );
   });
 };
-// update
+// updae
 export const stopAllConsumers = async () => {
   await Promise.allSettled(consumers.map((consumer) => consumer.disconnect()));
   consumers = [];
