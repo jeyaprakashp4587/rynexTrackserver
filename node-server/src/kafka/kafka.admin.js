@@ -1,7 +1,7 @@
 import { requireKafka } from "./kafka.client.js";
 import { PARTITIONS, REPLICATION_FACTOR, TOPICS } from "./kafka.config.js";
 import logger from "./kafka.logger.js";
-
+// update
 const resolveTopics = (overrides) =>
   Object.entries(TOPICS).map(([domain, topic]) => ({
     topic,
