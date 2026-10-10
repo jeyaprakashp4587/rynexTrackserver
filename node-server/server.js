@@ -11,7 +11,7 @@ const server = http.createServer(app);
 const startServer = async () => {
   try {
     await DB1;
-
+// update
     try {
       await initKafka();
       console.log("Kafka initialized");
