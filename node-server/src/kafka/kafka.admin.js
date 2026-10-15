@@ -8,7 +8,7 @@ const resolveTopics = (overrides) =>
     numPartitions:
       overrides.partitions?.[domain.toLowerCase()] ?? PARTITIONS[domain],
   }));
-
+// update
 export const createTopicsIfNotExist = async (overrides = {}) => {
   const admin = requireKafka().admin();
   await admin.connect();
