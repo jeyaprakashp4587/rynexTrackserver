@@ -82,8 +82,8 @@ impl RoomManager {
             None => return,
         };
 
-        for user_id in members {
-            self.send_to_user(&user_id, payload);
+        for user_id in &members {
+            self.send_to_user(user_id, payload);
         }
     }
 }

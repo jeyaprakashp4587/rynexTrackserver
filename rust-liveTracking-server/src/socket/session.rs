@@ -1,6 +1,6 @@
 use actix_web::web;
 use actix_ws::{CloseReason, Message, MessageStream, Session};
-use futures_util::StreamExt;
+use futures::StreamExt;
 use tokio::{sync::mpsc::UnboundedReceiver, time::Instant};
 use uuid::Uuid;
 

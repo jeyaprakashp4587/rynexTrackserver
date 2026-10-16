@@ -1,6 +1,6 @@
 use std::{sync::Arc, time::Duration};
 
-use futures_util::StreamExt;
+use futures::StreamExt;
 use redis::{Client, RedisResult};
 
 use crate::config::RedisConfig;
