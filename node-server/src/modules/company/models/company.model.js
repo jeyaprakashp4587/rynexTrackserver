@@ -7,11 +7,13 @@ const companySchema = new mongoose.Schema(
       type: String,
       required: true,
     },
-    owner: {
-      type: mongoose.Schema.Types.ObjectId,
-      ref: "User",
-      required: true,
-    },
+    owners: [
+      {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: "User",
+        required: true,
+      },
+    ],
     address: {
       type: String,
     },

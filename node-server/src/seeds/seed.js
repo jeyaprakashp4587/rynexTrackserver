@@ -39,7 +39,7 @@ const seed = async () => {
     // =========================
     const company = await Company.create({
       companyName: "Chennai Fast Logistics",
-      owner: ownerUser._id,
+      owners: [ownerUser._id],
       address: "Chennai Central",
       GSTNumber: "GST12345",
     });

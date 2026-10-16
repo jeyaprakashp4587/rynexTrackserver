@@ -39,7 +39,7 @@ export const getCompanyVehicles = async (userId) => {
   return vehicleCache.getCompanyVehicles(
     userId,
     () =>
-      Company.findOne({ owner: userId })
+      Company.findOne({ owners: userId })
         .populate("vehicles", {
           vehicleNumber: 1,
           vehicleImage: 1,

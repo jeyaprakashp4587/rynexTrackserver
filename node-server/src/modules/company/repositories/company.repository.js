@@ -3,13 +3,13 @@ import { companyCache } from "../cache/company.cache.js";
 
 export const createCompanyRecord = async ({
   companyName,
-  ownerId,
+  owners,
   address,
   GSTNumber,
 }) => {
   return Company.create({
     companyName,
-    owner: ownerId,
+    owners,
     address,
     GSTNumber,
   });
@@ -19,7 +19,7 @@ export const findCompanyByOwner = async (ownerId) => {
   return companyCache.getByOwner(
     ownerId,
     () =>
-      Company.findOne({ owner: ownerId }, { drivers: 0, vehicles: 0 }).lean(),
+      Company.findOne({ owners: ownerId }, { drivers: 0, vehicles: 0 }).lean(),
     3600
   );
 };

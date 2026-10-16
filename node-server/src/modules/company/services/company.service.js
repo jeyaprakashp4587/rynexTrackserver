@@ -13,9 +13,13 @@ export const createCompanyProfile = async ({
     throw new Error("Company name is required");
   }
 
+  if (!ownerId) {
+    throw new Error("Owner is required");
+  }
+
   return createCompanyRecord({
     companyName,
-    ownerId,
+    owners: [ownerId],
     address,
     GSTNumber: GstNumber,
   });

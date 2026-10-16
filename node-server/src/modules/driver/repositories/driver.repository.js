@@ -40,7 +40,7 @@ export const findCompanyDrivers = async (userId) => {
   return companyCache.getDriversByOwner(
     userId,
     () =>
-      Company.findOne({ owner: userId })
+      Company.findOne({ owners: userId })
         .populate("drivers", {
           name: 1,
           MobileNumber: 1,
