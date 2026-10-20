@@ -10,6 +10,7 @@ pub type SessionSender = UnboundedSender<String>;
 pub struct RoomManager {
     user_rooms: DashMap<String, HashMap<Uuid, SessionSender>>,
     trip_rooms: DashMap<String, HashSet<String>>,
+    vehicle_rooms: DashMap<String, HashSet<String>>,
 }
 
 impl RoomManager {
@@ -43,6 +44,10 @@ impl RoomManager {
                 members.remove(user_id);
                 !members.is_empty()
             });
+            self.vehicle_rooms.retain(|_, members| {
+                members.remove(user_id);
+                !members.is_empty()
+            });
         }
     }
 
@@ -68,6 +73,24 @@ impl RoomManager {
         self.trip_rooms.remove_if(trip_id, |_, members| members.is_empty());
     }
 
+    pub fn join_vehicle(&self, vehicle_id: &str, user_id: &str) -> bool {
+        if !self.is_user_connected(user_id) {
+            return false;
+        }
+        self.vehicle_rooms
+            .entry(vehicle_id.to_string())
+            .or_default()
+            .insert(user_id.to_string());
+        true
+    }
+
+    pub fn leave_vehicle(&self, vehicle_id: &str, user_id: &str) {
+        if let Some(mut members) = self.vehicle_rooms.get_mut(vehicle_id) {
+            members.remove(user_id);
+        }
+        self.vehicle_rooms.remove_if(vehicle_id, |_, members| members.is_empty());
+    }
+
     pub fn send_to_user(&self, user_id: &str, payload: &str) {
         if let Some(sessions) = self.user_rooms.get(user_id) {
             for tx in sessions.values() {
@@ -78,6 +101,17 @@ impl RoomManager {
 
     pub fn broadcast_trip(&self, trip_id: &str, payload: &str) {
         let members: Vec<String> = match self.trip_rooms.get(trip_id) {
+            Some(members) => members.iter().cloned().collect(),
+            None => return,
+        };
+
+        for user_id in &members {
+            self.send_to_user(user_id, payload);
+        }
+    }
+
+    pub fn broadcast_vehicle(&self, vehicle_id: &str, payload: &str) {
+        let members: Vec<String> = match self.vehicle_rooms.get(vehicle_id) {
             Some(members) => members.iter().cloned().collect(),
             None => return,
         };

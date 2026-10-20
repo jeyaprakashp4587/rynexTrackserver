@@ -1,6 +1,6 @@
 use serde::{Deserialize, Serialize};
 
-use super::location::LocationUpdate;
+use super::location::{LocationUpdate, VehicleLocationUpdate};
 
 #[derive(Debug, Serialize)]
 #[serde(tag = "event", content = "data", rename_all = "camelCase")]
@@ -17,7 +17,15 @@ pub enum ServerEvent<'a> {
         #[serde(rename = "tripId")]
         trip_id: &'a str,
     },
-    VehicleLocation(&'a LocationUpdate),
+    VehicleJoined {
+        #[serde(rename = "vehicleId")]
+        vehicle_id: &'a str,
+    },
+    VehicleLeft {
+        #[serde(rename = "vehicleId")]
+        vehicle_id: &'a str,
+    },
+    VehicleLocation(&'a VehicleLocationUpdate),
     Error {
         message: &'a str,
     },
@@ -39,5 +47,20 @@ pub enum ClientMessage {
     LeaveTrip {
         #[serde(rename = "tripId")]
         trip_id: String,
+    },
+    JoinVehicle {
+        #[serde(rename = "vehicleId")]
+        vehicle_id: String,
+    },
+    LeaveVehicle {
+        #[serde(rename = "vehicleId")]
+        vehicle_id: String,
+    },
+    VehicleLocation {
+        #[serde(rename = "vehicleId")]
+        vehicle_id: String,
+        lat: f64,
+        lon: f64,
+        time: String,
     },
 }

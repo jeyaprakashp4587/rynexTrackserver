@@ -31,6 +31,8 @@ export const createTripRequest = async (req, res) => {
 
 export const listTripRequests = async (req, res) => {
   try {
+    // console.log("triiger");
+
     const trips = await tripService.listTripRequests(req.userId);
 
     return successResponse({

@@ -90,22 +90,34 @@ export const createDriverVehicleRecord = async ({
 };
 
 export const getDriverVehicles = async (userId) => {
-  return vehicleCache.getDriverVehicles(
-    userId,
-    () =>
-      Driver.findOne({ driverUserId: userId })
-        .populate("vehicles", {
-          vehicleNumber: 1,
-          vehicleImage: 1,
-          vehicleModel: 1,
-          pricePerKm: 1,
-          vehicleType: 1,
-          currentLocation: 1,
-          availability: 1,
-        })
-        .lean(),
-    3600
-  );
+  // console.log("Fetching drifdgver vehicles for user:", userId);
+  return Driver.findOne({ driverUserId: userId })
+    .populate("vehicles", {
+      vehicleNumber: 1,
+      vehicleImage: 1,
+      vehicleModel: 1,
+      pricePerKm: 1,
+      vehicleType: 1,
+      currentLocation: 1,
+      availability: 1,
+    })
+    .lean();
+  // return vehicleCache.getDriverVehicles(
+  //   userId,
+  //   () =>
+  //     Driver.findOne({ driverUserId: userId })
+  //       .populate("vehicles", {
+  //         vehicleNumber: 1,
+  //         vehicleImage: 1,
+  //         vehicleModel: 1,
+  //         pricePerKm: 1,
+  //         vehicleType: 1,
+  //         currentLocation: 1,
+  //         availability: 1,
+  //       })
+  //       .lean(),
+  //   3600
+  // );
 };
 
 export const findNearbyVehicles = async ({

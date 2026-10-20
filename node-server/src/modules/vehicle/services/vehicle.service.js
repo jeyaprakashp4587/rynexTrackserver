@@ -37,6 +37,8 @@ export const getCompanyVehicleList = async (userId) => {
 
 export const getDriverVehicleList = async (userId) => {
   const driver = await getDriverVehicles(userId);
+  // console.log("drvers", driver);
+
   return driver?.vehicles || [];
 };
 

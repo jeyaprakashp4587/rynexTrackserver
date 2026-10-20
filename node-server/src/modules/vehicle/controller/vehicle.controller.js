@@ -68,6 +68,7 @@ export const getMyDriverVehicles = async (req, res) => {
     }
 
     const vehicles = await getDriverVehicleList(userId);
+    console.log("Retrieved vehicles:", vehicles);
     return successResponse({
       res,
       statusCode: 200,

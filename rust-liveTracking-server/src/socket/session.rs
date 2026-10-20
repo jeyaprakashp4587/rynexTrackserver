@@ -33,7 +33,7 @@ pub async fn run(
                 }
                 Some(Ok(Message::Text(text))) => {
                     last_heartbeat = Instant::now();
-                    handle_text(&state, &user_id, &text);
+                    handle_text(&state, &user_id, &text).await;
                 }
                 Some(Ok(Message::Close(reason))) => break reason,
                 Some(Ok(_)) => {}
@@ -62,7 +62,7 @@ pub async fn run(
     let _ = session.close(reason).await;
 }
 
-fn handle_text(state: &AppState, user_id: &str, text: &str) {
+async fn handle_text(state: &AppState, user_id: &str, text: &str) {
     match serde_json::from_str::<ClientMessage>(text) {
         Ok(ClientMessage::JoinTrip { trip_id }) => {
             if state.rooms.join_trip(&trip_id, user_id) {
@@ -76,6 +76,61 @@ fn handle_text(state: &AppState, user_id: &str, text: &str) {
             state
                 .rooms
                 .send_to_user(user_id, &ServerEvent::TripLeft { trip_id: &trip_id }.to_json());
+        }
+        Ok(ClientMessage::JoinVehicle { vehicle_id }) => {
+            if state.rooms.join_vehicle(&vehicle_id, user_id) {
+                state.rooms.send_to_user(
+                    user_id,
+                    &ServerEvent::VehicleJoined { vehicle_id: &vehicle_id }.to_json(),
+                );
+                log::info!("user {} joined vehicle room {}", user_id, vehicle_id);
+            }
+        }
+        Ok(ClientMessage::LeaveVehicle { vehicle_id }) => {
+            state.rooms.leave_vehicle(&vehicle_id, user_id);
+            state.rooms.send_to_user(
+                user_id,
+                &ServerEvent::VehicleLeft { vehicle_id: &vehicle_id }.to_json(),
+            );
+        }
+        Ok(ClientMessage::VehicleLocation {
+            vehicle_id,
+            lat,
+            lon,
+            time,
+        }) => {
+            let driver_id = user_id.to_string();
+            let vehicle_id_for_store = vehicle_id.clone();
+            let state = state.clone();
+            let time_for_store = time.clone();
+
+            log::info!(
+                "received vehicle socket update: vehicleId={}, driverId={}, lat={}, lon={}, time={}",
+                vehicle_id,
+                driver_id,
+                lat,
+                lon,
+                time
+            );
+
+            tokio::spawn(async move {
+                if let Err(err) = crate::services::publisher::store_vehicle_location(
+                    &state,
+                    &vehicle_id_for_store,
+                    &driver_id,
+                    lat,
+                    lon,
+                    &time_for_store,
+                )
+                .await
+                {
+                    log::error!(
+                        "failed to store vehicle location for vehicle {}: {}",
+                        vehicle_id_for_store,
+                        err
+                    );
+                }
+            });
         }
         Err(_) => {
             state.rooms.send_to_user(
