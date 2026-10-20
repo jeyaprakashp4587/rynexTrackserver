@@ -1,6 +1,6 @@
 use serde::{Deserialize, Serialize};
 
-use super::location::{LocationUpdate, VehicleLocationUpdate};
+use super::location::LocationUpdate;
 
 #[derive(Debug, Serialize)]
 #[serde(tag = "event", content = "data", rename_all = "camelCase")]
@@ -17,15 +17,7 @@ pub enum ServerEvent<'a> {
         #[serde(rename = "tripId")]
         trip_id: &'a str,
     },
-    VehicleJoined {
-        #[serde(rename = "vehicleId")]
-        vehicle_id: &'a str,
-    },
-    VehicleLeft {
-        #[serde(rename = "vehicleId")]
-        vehicle_id: &'a str,
-    },
-    VehicleLocation(&'a VehicleLocationUpdate),
+    TripLocation(&'a LocationUpdate),
     Error {
         message: &'a str,
     },
@@ -48,19 +40,23 @@ pub enum ClientMessage {
         #[serde(rename = "tripId")]
         trip_id: String,
     },
-    JoinVehicle {
-        #[serde(rename = "vehicleId")]
-        vehicle_id: String,
-    },
-    LeaveVehicle {
-        #[serde(rename = "vehicleId")]
-        vehicle_id: String,
-    },
+    #[serde(rename = "vehicleLocation", alias = "VehicleLocation")]
     VehicleLocation {
         #[serde(rename = "vehicleId")]
         vehicle_id: String,
-        lat: f64,
-        lon: f64,
-        time: String,
+        #[serde(default)]
+        #[serde(rename = "driverId")]
+        driver_id: Option<String>,
+        #[serde(default)]
+        #[serde(rename = "tripId")]
+        trip_id: Option<String>,
+        #[serde(default)]
+        location: Option<super::location::LocationPoint>,
+        #[serde(default)]
+        lat: Option<f64>,
+        #[serde(default)]
+        lon: Option<f64>,
+        #[serde(default, alias = "dateTime", alias = "datetime")]
+        time: Option<String>,
     },
 }

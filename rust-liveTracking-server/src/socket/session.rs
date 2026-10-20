@@ -33,6 +33,7 @@ pub async fn run(
                 }
                 Some(Ok(Message::Text(text))) => {
                     last_heartbeat = Instant::now();
+                    log::info!("raw websocket message from user {}: {}", user_id, text);
                     handle_text(&state, &user_id, &text).await;
                 }
                 Some(Ok(Message::Close(reason))) => break reason,
@@ -63,6 +64,8 @@ pub async fn run(
 }
 
 async fn handle_text(state: &AppState, user_id: &str, text: &str) {
+    log::info!("processing websocket payload from user {}: {}", user_id, text);
+
     match serde_json::from_str::<ClientMessage>(text) {
         Ok(ClientMessage::JoinTrip { trip_id }) => {
             if state.rooms.join_trip(&trip_id, user_id) {
@@ -77,50 +80,57 @@ async fn handle_text(state: &AppState, user_id: &str, text: &str) {
                 .rooms
                 .send_to_user(user_id, &ServerEvent::TripLeft { trip_id: &trip_id }.to_json());
         }
-        Ok(ClientMessage::JoinVehicle { vehicle_id }) => {
-            if state.rooms.join_vehicle(&vehicle_id, user_id) {
-                state.rooms.send_to_user(
-                    user_id,
-                    &ServerEvent::VehicleJoined { vehicle_id: &vehicle_id }.to_json(),
-                );
-                log::info!("user {} joined vehicle room {}", user_id, vehicle_id);
-            }
-        }
-        Ok(ClientMessage::LeaveVehicle { vehicle_id }) => {
-            state.rooms.leave_vehicle(&vehicle_id, user_id);
-            state.rooms.send_to_user(
-                user_id,
-                &ServerEvent::VehicleLeft { vehicle_id: &vehicle_id }.to_json(),
-            );
-        }
         Ok(ClientMessage::VehicleLocation {
             vehicle_id,
+            driver_id,
+            trip_id,
+            location,
             lat,
             lon,
             time,
         }) => {
-            let driver_id = user_id.to_string();
+            let driver_id = driver_id.unwrap_or_else(|| user_id.to_string());
+            let lat = location.as_ref().map(|point| point.lat).or(lat).unwrap_or_default();
+            let lon = location.as_ref().map(|point| point.lon).or(lon).unwrap_or_default();
+            let time = time.unwrap_or_else(|| chrono::Utc::now().to_rfc3339());
             let vehicle_id_for_store = vehicle_id.clone();
+            let driver_id_for_store = driver_id.clone();
             let state = state.clone();
-            let time_for_store = time.clone();
 
             log::info!(
-                "received vehicle socket update: vehicleId={}, driverId={}, lat={}, lon={}, time={}",
+                "received vehicle socket update: vehicleId={}, driverId={}, tripId={:?}, lat={}, lon={}, time={}",
                 vehicle_id,
                 driver_id,
+                trip_id,
                 lat,
                 lon,
                 time
             );
 
             tokio::spawn(async move {
+                if let Some(trip_id) = trip_id {
+                    let trip_update = crate::models::LocationUpdate {
+                        trip_id: Some(trip_id.clone()),
+                        vehicle_id: Some(vehicle_id_for_store.clone()),
+                        driver_id: Some(driver_id_for_store.clone()),
+                        location: Some(crate::models::location::LocationPoint { lat, lon }),
+                        lat: Some(lat),
+                        lon: Some(lon),
+                        time: Some(time.clone()),
+                    };
+
+                    if let Err(err) = crate::services::publisher::publish_location(&state, &trip_update).await {
+                        log::error!("failed to broadcast trip location for trip {}: {}", trip_id, err);
+                    }
+                }
+
                 if let Err(err) = crate::services::publisher::store_vehicle_location(
                     &state,
                     &vehicle_id_for_store,
-                    &driver_id,
+                    &driver_id_for_store,
                     lat,
                     lon,
-                    &time_for_store,
+                    &time,
                 )
                 .await
                 {
@@ -132,7 +142,8 @@ async fn handle_text(state: &AppState, user_id: &str, text: &str) {
                 }
             });
         }
-        Err(_) => {
+        Err(err) => {
+            log::warn!("invalid websocket message from user {}: {} | error: {}", user_id, text, err);
             state.rooms.send_to_user(
                 user_id,
                 &ServerEvent::Error { message: "invalid message" }.to_json(),

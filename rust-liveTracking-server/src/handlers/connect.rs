@@ -30,6 +30,7 @@ pub async fn connect(
     let (tx, rx) = mpsc::unbounded_channel::<String>();
     let session_id = Uuid::new_v4();
 
+    log::info!("socket connected: userId={}, sessionId={}", user_id, session_id);
     state.rooms.join_user(&user_id, session_id, tx);
     state
         .rooms

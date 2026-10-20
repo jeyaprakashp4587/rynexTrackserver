@@ -20,8 +20,7 @@ pub fn spawn(client: Client, rooms: Arc<RoomManager>, config: RedisConfig) {
 async fn listen(client: &Client, rooms: &RoomManager, config: &RedisConfig) -> RedisResult<()> {
     let mut pubsub = client.get_async_pubsub().await?;
     pubsub.psubscribe(config.trip_pattern()).await?;
-    pubsub.psubscribe(config.vehicle_pattern()).await?;
-    log::info!("subscribed to {} and {}", config.trip_pattern(), config.vehicle_pattern());
+    log::info!("subscribed to {}", config.trip_pattern());
 
     let mut stream = pubsub.on_message();
 
@@ -34,8 +33,6 @@ async fn listen(client: &Client, rooms: &RoomManager, config: &RedisConfig) -> R
 
         if let Some(trip_id) = channel.strip_prefix(config.trip_channel_prefix.as_str()) {
             rooms.broadcast_trip(trip_id, &payload);
-        } else if let Some(vehicle_id) = channel.strip_prefix(config.vehicle_channel_prefix.as_str()) {
-            rooms.broadcast_vehicle(vehicle_id, &payload);
         }
     }
 

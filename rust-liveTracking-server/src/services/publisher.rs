@@ -5,8 +5,14 @@ use crate::models::{LocationUpdate, ServerEvent, VehicleLocationUpdate};
 use crate::state::AppState;
 
 pub async fn publish_location(state: &AppState, update: &LocationUpdate) -> Result<i64, AppError> {
-    let channel = state.settings.redis.trip_channel(&update.trip_id);
-    let payload = ServerEvent::VehicleLocation(update).to_json();
+    let trip_id = update
+        .trip_id
+        .as_deref()
+        .filter(|value| !value.trim().is_empty())
+        .ok_or_else(|| AppError::BadRequest("tripId is required to broadcast location".into()))?;
+
+    let channel = state.settings.redis.trip_channel(trip_id);
+    let payload = ServerEvent::TripLocation(update).to_json();
 
     let mut conn = state.publisher.clone();
     let receivers: i64 = conn.publish(channel, payload).await?;
@@ -22,6 +28,15 @@ pub async fn store_vehicle_location(
     lon: f64,
     time: &str,
 ) -> Result<i64, AppError> {
+    log::info!(
+        "storing vehicle location from driver {} for vehicle {}: lat={}, lon={}, time={}",
+        driver_id,
+        vehicle_id,
+        lat,
+        lon,
+        time
+    );
+
     let update = VehicleLocationUpdate {
         vehicle_id: vehicle_id.to_string(),
         driver_id: driver_id.to_string(),
@@ -32,7 +47,7 @@ pub async fn store_vehicle_location(
     update.validate()?;
 
     let key = state.settings.redis.vehicle_key(vehicle_id);
-    let mut conn = state.redis_client.get_async_connection().await?;
+    let mut conn = state.redis_client.get_multiplexed_async_connection().await?;
     let _: () = redis::cmd("HSET")
         .arg(&key)
         .arg("vehicleId")
@@ -48,20 +63,14 @@ pub async fn store_vehicle_location(
         .query_async(&mut conn)
         .await?;
 
-    let channel = state.settings.redis.vehicle_channel(vehicle_id);
-    let payload = ServerEvent::VehicleLocation(&update).to_json();
-    let mut publisher = state.publisher.clone();
-    let receivers: i64 = publisher.publish(channel, payload).await?;
-
     log::info!(
-        "stored vehicle location in redis: key={}, vehicleId={}, driverId={}, lat={}, lon={}, receivers={}",
+        "stored vehicle location in redis: key={}, vehicleId={}, driverId={}, lat={}, lon={}",
         key,
         update.vehicle_id,
         update.driver_id,
         update.lat,
         update.lon,
-        receivers
     );
 
-    Ok(receivers)
+    Ok(1)
 }
