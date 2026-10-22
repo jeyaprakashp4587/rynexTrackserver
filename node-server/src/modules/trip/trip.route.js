@@ -14,6 +14,7 @@ import {
 const router = Router();
 
 router.post("/requests", verifyToken, createTripRequest);
+router.post("/requests/:requestType", verifyToken, createTripRequest);
 router.get("/requests", verifyToken, listTripRequests);
 router.get("/requests/:tripId", verifyToken, getTripRequestDetails);
 router.post(

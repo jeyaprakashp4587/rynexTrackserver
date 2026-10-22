@@ -7,9 +7,16 @@ import {
 
 export const createTripRequest = async (req, res) => {
   try {
+    const requestType = (
+      req.params?.requestType ||
+      req.body?.requestType ||
+      "USER"
+    ).toUpperCase();
+
     const result = await tripService.createTripRequest({
       body: req.body,
       userId: req.userId,
+      requestType,
     });
 
     return successResponse({

@@ -10,6 +10,11 @@ export const TRIP_STATUS = {
   WAITING_FOR_DRIVER: "WAITING_FOR_DRIVER",
 };
 
+export const TRIP_REQUEST_TYPE = {
+  USER: "USER",
+  OWNER: "OWNER",
+};
+
 export const TRIP_TYPE = {
   COMPANY: "COMPANY_TRIP",
   INDEPENDENT: "INDEPENDENT_TRIP",

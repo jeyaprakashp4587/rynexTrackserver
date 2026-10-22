@@ -1,24 +1,33 @@
 import * as tripRepo from "../repositories/trip.repositories.js";
 import { formatRecipients } from "../utils/formatRecipients.js";
 import { formatTripStop } from "../utils/formatTripStop.js";
-import { TRIP_STATUS } from "../constants/trip.constants.js";
+import { TRIP_REQUEST_TYPE, TRIP_STATUS } from "../constants/trip.constants.js";
 import mongoose from "mongoose";
 import { sendMessage } from "../../../kafka/index.js";
 import { TOPIC_TRIP_CREATED, buildTripCreated } from "../events/trip.events.js";
 
-export const createTripRequest = async ({ body, userId }) => {
+export const createTripRequest = async ({ body, userId, requestType }) => {
   const { data } = body;
+  const normalizedRequestType = (
+    requestType ||
+    body?.requestType ||
+    TRIP_REQUEST_TYPE.USER
+  ).toUpperCase();
 
   const { tripMode, bookingType, recipients, stops } = data;
 
   const formattedRecipients = formatRecipients(recipients, userId);
+  const initialStatus =
+    normalizedRequestType === TRIP_REQUEST_TYPE.OWNER
+      ? TRIP_STATUS.WAITING_FOR_DRIVER
+      : TRIP_STATUS.PENDING;
 
   const tripRequest = await tripRepo.createTripRequestRecord({
     createdBy: [userId],
     tripType: bookingType,
     tripMode,
     recipients: formattedRecipients,
-    status: TRIP_STATUS.PENDING,
+    status: initialStatus,
   });
   const formattedStops = formatTripStop(stops);
 
@@ -28,7 +37,7 @@ export const createTripRequest = async ({ body, userId }) => {
   });
   // publish trip.created event
   try {
-    await sendMessage(TOPIC_TRIP_CREATED, buildTripCreated(tripRequest));
+    // await sendMessage(TOPIC_TRIP_CREATED, buildTripCreated(tripRequest));
   } catch (e) {
     console.warn("Failed to publish trip.created event:", e.message || e);
   }
