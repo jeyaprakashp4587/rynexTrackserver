@@ -57,7 +57,7 @@ export const assignTripToDriverForRequest = async ({
     },
     {
       $set: {
-        status: TRIP_STATUS.ACCEPTED,
+        status: TRIP_STATUS.WAITING_FOR_DRIVER,
         recipients,
         tripType: TRIP_TYPE.INDEPENDENT,
       },

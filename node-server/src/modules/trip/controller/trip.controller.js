@@ -28,7 +28,7 @@ export const createTripRequest = async (req, res) => {
     });
   }
 };
-
+// this for both driver and owner
 export const listTripRequests = async (req, res) => {
   try {
     // console.log("triiger");

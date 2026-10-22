@@ -66,6 +66,7 @@ const tripRequests = new mongoose.Schema({
       TRIP_STATUS.REJECTED,
       TRIP_STATUS.CANCELLED,
       TRIP_STATUS.EXPIRED,
+      TRIP_STATUS.WAITING_FOR_DRIVER,
     ],
     default: TRIP_STATUS.PENDING,
   },
