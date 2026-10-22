@@ -20,7 +20,6 @@ let consumers = [];
 
 const startConsumer = async ({ topic, groupId, handler }) => {
   const consumer = kafka.consumer({ groupId });
-
   try {
     await consumer.connect();
     await consumer.subscribe({ topic, fromBeginning: false });
@@ -68,7 +67,7 @@ export const startAllConsumers = async () => {
     );
   });
 };
-// updae
+// update
 export const stopAllConsumers = async () => {
   await Promise.allSettled(consumers.map((consumer) => consumer.disconnect()));
   consumers = [];

@@ -7,7 +7,7 @@ import {
 } from "./kafka.producer.js";
 import { startAllConsumers, stopAllConsumers } from "./kafka.consumer.js";
 
-export { publishEvent };
+// export { publishEvent };
 
 export const sendMessage = publishEvent;
 

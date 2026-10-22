@@ -49,10 +49,7 @@ export const PARTITIONS = toInt(env.KAFKA_PARTITIONS, 3);
 export const REPLICATION_FACTOR = toInt(env.KAFKA_REPLICATION_FACTOR, 3);
 
 export const TOPICS = Object.fromEntries(
-  Object.entries(DEFAULT_TOPICS).map(([name, topic]) => [
-    name,
-    env[`KAFKA_TOPIC_${name}`] || topic,
-  ])
+  Object.entries(DEFAULT_TOPICS).map(([name, topic]) => [name, topic])
 );
 
 export const CONSUMER_GROUPS = Object.fromEntries(
