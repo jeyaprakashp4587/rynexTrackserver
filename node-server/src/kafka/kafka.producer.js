@@ -44,7 +44,7 @@ const getKey = (event) => {
   const field = data && KEY_FIELDS.find((name) => data[name] != null);
   return field ? String(data[field]) : undefined;
 };
-
+// 7305756106
 export const publishEvent = async (topic, event) => {
   if (!KAFKA_ENABLED) return null;
 
