@@ -95,7 +95,6 @@ const tripStopSchema = new mongoose.Schema(
     tripRequestId: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "TripRequests",
-      // required: true,
     },
 
     stops: {
