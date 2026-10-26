@@ -2,7 +2,12 @@ import { Company } from "../../company/models/company.model.js";
 import { Driver } from "../models/driver.model.js";
 import { companyCache } from "../../company/cache/company.cache.js";
 import { driverCache } from "../cache/driver.cache.js";
-import { DRIVER_AVAILABILITY } from "../constants/driver.constants.js";
+import {
+  DRIVER_AVAILABILITY,
+  DRIVER_AVAILABILITY_VALUES,
+  DRIVER_TRIP_STATUS,
+  DRIVER_TRIP_STATUS_VALUES,
+} from "../constants/driver.constants.js";
 
 export const createDriverRecord = async ({
   name,
@@ -70,13 +75,24 @@ export const createIndependentDriver = async ({
   });
 };
 
-export const changeAvailabilityStatus = async (
+export const changeAvailabilityStatus = async ({
   userId,
-  newAvailabilityStatus
-) => {
+  driverId,
+  newAvailabilityStatus,
+}) => {
+  const normalizedStatus = String(newAvailabilityStatus || "")
+    .trim()
+    .toUpperCase();
+
+  if (!DRIVER_AVAILABILITY_VALUES.includes(normalizedStatus)) {
+    throw new Error(
+      `Invalid driver availability status: ${newAvailabilityStatus}`
+    );
+  }
+
   const update = await Driver.findOneAndUpdate(
-    { driverUserId: userId },
-    { availability: newAvailabilityStatus },
+    driverId ? { _id: driverId } : { driverUserId: userId },
+    { availability: normalizedStatus },
     { new: true }
   );
 
@@ -87,10 +103,18 @@ export const changeAvailabilityStatus = async (
   return update;
 };
 
-export const changeTripStatus = async (userId, newTripStatus) => {
+export const changeTripStatus = async ({ userId, driverId, newTripStatus }) => {
+  const normalizedStatus = String(newTripStatus || "")
+    .trim()
+    .toUpperCase();
+
+  if (!DRIVER_TRIP_STATUS_VALUES.includes(normalizedStatus)) {
+    throw new Error(`Invalid driver trip status: ${newTripStatus}`);
+  }
+
   const update = await Driver.findOneAndUpdate(
-    { driverUserId: userId },
-    { tripStatus: newTripStatus },
+    driverId ? { _id: driverId } : { driverUserId: userId },
+    { tripStatus: normalizedStatus },
     { new: true }
   );
 

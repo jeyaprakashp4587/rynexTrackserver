@@ -1,5 +1,7 @@
 import { Company } from "../../company/models/company.model.js";
 import {
+  changeAvailabilityStatus as updateDriverAvailabilityStatus,
+  changeTripStatus as updateDriverTripStatus,
   createDriverRecord,
   createIndependentDriver,
   findCompanyDrivers,
@@ -44,7 +46,7 @@ export const onboardDriver = async ({
   coordinates,
 }) => {
   if (!name || !MobileNumber) {
-    throw new Error("Name and MobileNumber are required");
+    throw new Error("Name and MobileNumbekr are required");
   }
 
   return createIndependentDriver({
@@ -64,21 +66,34 @@ export const getCompanyDrivers = async (userId) => {
   return company.drivers;
 };
 
-export const changeAvailabilityStatus = async (
+export const changeAvailabilityStatus = async ({
   userId,
-  newAvailabilityStatus
-) => {
-  const update = await changeAvailabilityStatus(userId, newAvailabilityStatus);
+  driverId,
+  newAvailabilityStatus,
+}) => {
+  const update = await updateDriverAvailabilityStatus({
+    userId,
+    driverId,
+    newAvailabilityStatus,
+  });
+
   if (!update) {
     throw new Error("Failed to update availability status");
   }
+
   return update;
 };
 
-export const changeTripStatus = async (userId, newTripStatus) => {
-  const update = await changeTripStatus(userId, newTripStatus);
+export const changeTripStatus = async ({ userId, driverId, newTripStatus }) => {
+  const update = await updateDriverTripStatus({
+    userId,
+    driverId,
+    newTripStatus,
+  });
+
   if (!update) {
     throw new Error("Failed to update trip status");
   }
+
   return update;
 };

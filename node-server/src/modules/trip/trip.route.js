@@ -3,6 +3,7 @@ import { verifyToken } from "../../middlewares/JWT.js";
 import {
   acceptTripRequestForDriver,
   acceptTripRequestForOwner,
+  createCompanyTrip,
   createTripRequest,
   getCompanyTripDetails,
   getDriverCurrentTripDetails,
@@ -28,6 +29,7 @@ router.post(
   acceptTripRequestForDriver
 );
 router.get("/driver/current", verifyToken, getDriverCurrentTripDetails);
+router.post("/company/create", verifyToken, createCompanyTrip);
 router.get("/company/active", verifyToken, listCompanyActiveTrips);
 router.get("/company/:tripId", verifyToken, getCompanyTripDetails);
 

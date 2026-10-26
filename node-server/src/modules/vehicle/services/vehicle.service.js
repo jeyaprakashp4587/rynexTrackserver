@@ -1,4 +1,6 @@
 import {
+  changeAvailabilityStatus as updateVehicleAvailabilityStatus,
+  changeTripStatus as updateVehicleTripStatus,
   createDriverVehicleRecord,
   createVehicleRecord,
   findNearbyVehicles,
@@ -64,6 +66,35 @@ export const createDriverVehicle = async ({
     userId,
     vehicleType,
   });
+};
+
+export const changeAvailabilityStatus = async ({
+  vehicleId,
+  newAvailabilityStatus,
+}) => {
+  const update = await updateVehicleAvailabilityStatus({
+    vehicleId,
+    newAvailabilityStatus,
+  });
+
+  if (!update) {
+    throw new Error("Failed to update vehicle availability status");
+  }
+
+  return update;
+};
+
+export const changeTripStatus = async ({ vehicleId, newTripStatus }) => {
+  const update = await updateVehicleTripStatus({
+    vehicleId,
+    newTripStatus,
+  });
+
+  if (!update) {
+    throw new Error("Failed to update vehicle trip status");
+  }
+
+  return update;
 };
 
 export const findNearbyVehicleOptions = async ({

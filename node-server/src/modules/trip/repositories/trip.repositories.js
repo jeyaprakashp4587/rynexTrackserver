@@ -1,8 +1,7 @@
 import mongoose from "mongoose";
 import tripRequests from "../models/tripRequests.model.js";
 import TripStops from "../models/tripStops.model.js";
-import { Vehicle } from "../../vehicle/models/vehicle.model.js";
-import { Driver } from "../../driver/models/driver.model.js";
+import { trip as CompanyTrip } from "../models/company.trip.models.js";
 import { TRIP_STATUS, TRIP_TYPE } from "../constants/trip.constants.js";
 
 import {
@@ -21,7 +20,16 @@ export const createTripRequestRecord = async (payload) => {
   return result[0];
 };
 
+export const createCompanyTripRecord = async (payload) => {
+  const result = await CompanyTrip.create([payload]);
+  return result[0];
+};
+
 export const createTripStopRecords = async (payload) => {
+  return TripStops.create([payload]);
+};
+
+export const createCompanyTripStopRecords = async (payload) => {
   return TripStops.create([payload]);
 };
 
@@ -139,38 +147,6 @@ export const linkTripStopsToRecipient = async ({
       },
     },
     { new: true }
-  );
-};
-
-export const setVehicleAvailability = async ({
-  vehicleId,
-  currentlyAvailable,
-}) => {
-  return Vehicle.updateOne(
-    {
-      _id: vehicleId,
-    },
-    {
-      $set: {
-        currentlyAvailable,
-      },
-    }
-  );
-};
-
-export const setDriverAvailability = async ({
-  driverId,
-  currentlyAvailable,
-}) => {
-  return Driver.updateOne(
-    {
-      _id: driverId,
-    },
-    {
-      $set: {
-        currentlyAvailable,
-      },
-    }
   );
 };
 

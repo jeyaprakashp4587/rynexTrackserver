@@ -24,6 +24,11 @@ const vehicleSchema = new mongoose.Schema(
       enum: ["AVAILABLE", "UNAVAILABLE"],
       default: "AVAILABLE",
     },
+    tripStatus: {
+      type: String,
+      enum: ["IDLE", "ON_TRIP"],
+      default: "IDLE",
+    },
     currentDriver: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "Driver",

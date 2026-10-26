@@ -2,6 +2,7 @@ import kafka from "./kafka.client.js";
 import { CONSUMER_GROUPS, TOPICS } from "./kafka.config.js";
 import tripEvents from "../modules/trip/events/trip.events.js";
 import driverEvents from "../modules/driver/events/driver.events.js";
+import vehicleEvents from "../modules/vehicle/events/vehicle.events.js";
 
 const getSubscriptions = () => [
   {
@@ -10,9 +11,24 @@ const getSubscriptions = () => [
     handler: tripEvents.handleTripEvent,
   },
   {
+    topic: TOPICS.TRIP,
+    groupId: CONSUMER_GROUPS.DRIVER,
+    handler: driverEvents.handleDriverEvent,
+  },
+  {
+    topic: TOPICS.TRIP,
+    groupId: CONSUMER_GROUPS.VEHICLE,
+    handler: vehicleEvents.handleVehicleEvent,
+  },
+  {
     topic: TOPICS.DRIVER,
     groupId: CONSUMER_GROUPS.DRIVER,
     handler: driverEvents.handleDriverEvent,
+  },
+  {
+    topic: TOPICS.VEHICLE,
+    groupId: CONSUMER_GROUPS.VEHICLE,
+    handler: vehicleEvents.handleVehicleEvent,
   },
 ];
 

@@ -91,12 +91,14 @@ const tripStopSchema = new mongoose.Schema(
       type: mongoose.Schema.Types.ObjectId,
       ref: "Trip",
     },
-
     tripRequestId: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "TripRequests",
     },
-
+    companyTripId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "CompanyTrip",
+    },
     stops: {
       type: [stopSchema],
       default: [],

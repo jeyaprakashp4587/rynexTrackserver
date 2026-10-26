@@ -1,0 +1,13 @@
+export const VEHICLE_AVAILABILITY = Object.freeze({
+  AVAILABLE: "AVAILABLE",
+  UNAVAILABLE: "UNAVAILABLE",
+});
+
+export const VEHICLE_AVAILABILITY_VALUES = Object.values(VEHICLE_AVAILABILITY);
+
+export const VEHICLE_TRIP_STATUS = Object.freeze({
+  IDLE: "IDLE",
+  ON_TRIP: "ON_TRIP",
+});
+
+export const VEHICLE_TRIP_STATUS_VALUES = Object.values(VEHICLE_TRIP_STATUS);

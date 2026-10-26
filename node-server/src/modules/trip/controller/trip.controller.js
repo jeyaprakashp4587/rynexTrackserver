@@ -154,6 +154,28 @@ export const updateTripStopProgress = async (req, res) => {
   }
 };
 
+export const createCompanyTrip = async (req, res) => {
+  try {
+    const result = await tripService.createCompanyTrip({
+      body: req.body,
+      userId: req.userId,
+    });
+
+    return successResponse({
+      res,
+      statusCode: 200,
+      message: "Company trip created successfully",
+      data: result,
+    });
+  } catch (error) {
+    return errorResponse({
+      res,
+      statusCode: 500,
+      message: error.message || "Failed to create company trip",
+    });
+  }
+};
+
 export const listCompanyActiveTrips = async (req, res) => {
   try {
     const trips = await tripService.listCompanyActiveTrips(req.userId);

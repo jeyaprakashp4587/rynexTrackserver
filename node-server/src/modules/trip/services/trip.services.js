@@ -1,10 +1,20 @@
 import * as tripRepo from "../repositories/trip.repositories.js";
 import { formatRecipients } from "../utils/formatRecipients.js";
 import { formatTripStop } from "../utils/formatTripStop.js";
-import { TRIP_REQUEST_TYPE, TRIP_STATUS } from "../constants/trip.constants.js";
+import {
+  TRIP_MODE,
+  TRIP_REQUEST_TYPE,
+  TRIP_STATUS,
+  TRIP_STOP_STATUS,
+} from "../constants/trip.constants.js";
 import mongoose from "mongoose";
 import { sendMessage } from "../../../kafka/index.js";
-import { TOPIC_TRIP_CREATED, buildTripCreated } from "../events/trip.events.js";
+import {
+  TOPIC_TRIP_ACCEPTED,
+  TOPIC_TRIP_CREATED,
+  buildTripAccepted,
+  buildTripCreated,
+} from "../events/trip.events.js";
 
 export const createTripRequest = async ({ body, userId, requestType }) => {
   const { data } = body;
@@ -166,15 +176,28 @@ export const acceptTripRequestForDriver = async ({ userId, tripId }) => {
       recipientId: tripRecipientId,
     });
 
-    await tripRepo.setVehicleAvailability({
-      vehicleId: currentRecipient.vehicleId,
-      currentlyAvailable: false,
-    });
-
-    await tripRepo.setDriverAvailability({
+    const tripAcceptedPayload = {
+      tripId: acceptedTrip?._id || tripId,
+      tripRequestId: tripId,
       driverId: currentRecipient.driverId,
-      currentlyAvailable: false,
-    });
+      vehicleId: currentRecipient.vehicleId,
+      recipientId: tripRecipientId,
+      userId,
+      status: TRIP_STATUS.ACCEPTED,
+      acceptedAt: new Date().toISOString(),
+    };
+
+    try {
+      await sendMessage(
+        TOPIC_TRIP_ACCEPTED,
+        buildTripAccepted(tripAcceptedPayload)
+      );
+    } catch (eventError) {
+      console.warn(
+        "Failed to publish trip.accepted event:",
+        eventError?.message || eventError
+      );
+    }
 
     return {
       message: "Trip accepted successfully",
@@ -231,6 +254,47 @@ export const listCompanyActiveTrips = async (userId) => {
   try {
     const trips = await tripRepo.listCompanyCurrentTrips(userId);
     return trips;
+  } catch (error) {
+    throw error;
+  }
+};
+
+export const createCompanyTrip = async ({ body, userId }) => {
+  try {
+    const payload = body?.data ?? body;
+    const { recipients, stops, isDailyTrip } = payload;
+
+    const formattedRecipients = formatRecipients(recipients, userId);
+
+    const companyTrip = await tripRepo.createCompanyTripRecord({
+      createdBy: userId,
+      tripStopMode: TRIP_MODE.MULTI_STOP,
+      status: TRIP_STATUS.WAITING_FOR_DRIVER,
+      recipients: formattedRecipients,
+      isDailyTrip: Boolean(isDailyTrip),
+    });
+
+    const formattedStops = formatTripStop(stops).map((stop) => ({
+      ...stop,
+      recipientsMeta: recipients.map((recipient) => ({
+        recipientId: recipient.userId,
+        status: TRIP_STOP_STATUS.PENDING,
+        contactPerson: recipient.contactPerson || "",
+        contactPhone: recipient.contactPhone || "",
+        notes: recipient.notes || "",
+        otp: recipient.otp || "",
+        proofPhotos: [],
+      })),
+    }));
+
+    await tripRepo.createCompanyTripStopRecords({
+      companyTripId: companyTrip._id,
+      tripId: null,
+      tripRequestId: null,
+      stops: formattedStops,
+    });
+
+    return companyTrip;
   } catch (error) {
     throw error;
   }

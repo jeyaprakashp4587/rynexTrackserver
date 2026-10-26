@@ -3,6 +3,8 @@ import {
   successResponse,
 } from "../../../shared/utils/response.js";
 import {
+  changeAvailabilityStatus as updateDriverAvailabilityStatus,
+  changeTripStatus as updateDriverTripStatus,
   createCompanyDriver,
   getCompanyDrivers,
   getDriverProfile,
@@ -63,8 +65,12 @@ export const onBoardingDriver = async (req, res) => {
 };
 export const changeAvailabilityStatus = async (req, res) => {
   try {
-    const { availability } = req.body;
-    await updateAvailabilityStatus(req.userId, availability);
+    const { availability, driverId } = req.body;
+    await updateDriverAvailabilityStatus({
+      userId: req.userId,
+      driverId,
+      newAvailabilityStatus: availability,
+    });
     return successResponse({
       res,
       statusCode: 200,
@@ -81,8 +87,12 @@ export const changeAvailabilityStatus = async (req, res) => {
 
 export const changeTripStatus = async (req, res) => {
   try {
-    const { tripStatus } = req.body;
-    await updateTripStatus(req.userId, tripStatus);
+    const { tripStatus, driverId } = req.body;
+    await updateDriverTripStatus({
+      userId: req.userId,
+      driverId,
+      newTripStatus: tripStatus,
+    });
     return successResponse({
       res,
       statusCode: 200,

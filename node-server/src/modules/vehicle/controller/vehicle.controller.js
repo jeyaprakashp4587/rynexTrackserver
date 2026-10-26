@@ -3,6 +3,8 @@ import {
   successResponse,
 } from "../../../shared/utils/response.js";
 import {
+  changeAvailabilityStatus as updateVehicleAvailabilityStatus,
+  changeTripStatus as updateVehicleTripStatus,
   createDriverVehicle,
   createVehicle,
   findNearbyVehicleOptions,
@@ -107,6 +109,50 @@ export const createDriverVehicleProfile = async (req, res) => {
       res,
       statusCode: error.message ? 400 : 500,
       message: error.message || "Failed to create driver vehicle",
+    });
+  }
+};
+
+export const changeAvailabilityStatus = async (req, res) => {
+  try {
+    const { availability, vehicleId } = req.body;
+    await updateVehicleAvailabilityStatus({
+      vehicleId,
+      newAvailabilityStatus: availability,
+    });
+
+    return successResponse({
+      res,
+      statusCode: 200,
+      message: "Vehicle availability status updated successfully",
+    });
+  } catch (error) {
+    return errorResponse({
+      res,
+      statusCode: 500,
+      message: error.message || "Failed to update vehicle availability status",
+    });
+  }
+};
+
+export const changeTripStatus = async (req, res) => {
+  try {
+    const { tripStatus, vehicleId } = req.body;
+    await updateVehicleTripStatus({
+      vehicleId,
+      newTripStatus: tripStatus,
+    });
+
+    return successResponse({
+      res,
+      statusCode: 200,
+      message: "Vehicle trip status updated successfully",
+    });
+  } catch (error) {
+    return errorResponse({
+      res,
+      statusCode: 500,
+      message: error.message || "Failed to update vehicle trip status",
     });
   }
 };
