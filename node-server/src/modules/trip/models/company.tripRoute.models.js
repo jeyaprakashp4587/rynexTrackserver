@@ -85,4 +85,7 @@ const companyRoutesSchema = new mongoose.Schema(
   }
 );
 
-export const companyRoutes = DB1.model("CompanyTripRoute", companyRoutesSchema);
+export const companyRoutes = DB1.model(
+  "CompanyTripRoutes",
+  companyRoutesSchema
+);

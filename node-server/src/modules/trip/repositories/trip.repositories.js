@@ -21,7 +21,7 @@ export const createTripRequestRecord = async (payload) => {
 };
 
 export const createCompanyTripRecord = async (payload) => {
-  const result = await CompanyTrip.create([payload]);
+  const result = await companyRoutes.create([payload]);
   return result[0];
 };
 
