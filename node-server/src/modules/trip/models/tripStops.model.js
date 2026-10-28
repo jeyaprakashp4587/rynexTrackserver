@@ -31,12 +31,12 @@ const stopSchema = new mongoose.Schema(
         required: true,
       },
     },
-    // set trip stop meta data for recipients (each driver)
+    // set trip stop meta data for recipients (each driver) tjis flow only for non company trips
     recipientsMeta: [
       {
         recipientId: {
           type: mongoose.Schema.Types.ObjectId,
-          required: true,
+          // required: true,
         },
         status: {
           type: String,

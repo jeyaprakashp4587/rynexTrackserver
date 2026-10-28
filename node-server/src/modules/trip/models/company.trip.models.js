@@ -6,7 +6,7 @@ const tripSchema = new mongoose.Schema(
   {
     tripStopMode: {
       type: String,
-      enum: [TRIP_MODE.MULTI_STOP],
+      enum: [TRIP_MODE.MULTI_STOP, TRIP_MODE.SINGLE],
       default: TRIP_MODE.MULTI_STOP,
     },
 
