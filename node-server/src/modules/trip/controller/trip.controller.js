@@ -195,6 +195,25 @@ export const listCompanyActiveTrips = async (req, res) => {
   }
 };
 
+export const listCompanyRoutes = async (req, res) => {
+  try {
+    const routes = await tripService.listCompanyRoutes(req.userId);
+
+    return successResponse({
+      res,
+      statusCode: 200,
+      message: "Company routes fetched successfully",
+      data: routes,
+    });
+  } catch (error) {
+    return errorResponse({
+      res,
+      statusCode: 500,
+      message: error.message || "Failed to get company routes",
+    });
+  }
+};
+
 export const getCompanyTripDetails = async (req, res) => {
   try {
     const { tripId } = req.params;

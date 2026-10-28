@@ -2,7 +2,7 @@ import mongoose from "mongoose";
 import { TRIP_MODE, TRIP_STATUS } from "../constants/trip.constants.js";
 import { DB1 } from "../../../config/db.js";
 
-const tripSchema = new mongoose.Schema(
+const companyRoutesSchema = new mongoose.Schema(
   {
     tripStopMode: {
       type: String,
@@ -85,4 +85,4 @@ const tripSchema = new mongoose.Schema(
   }
 );
 
-export const trip = DB1.model("CompanyTrip", tripSchema);
+export const companyRoutes = DB1.model("CompanyTripRoute", companyRoutesSchema);

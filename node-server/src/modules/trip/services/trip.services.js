@@ -259,6 +259,15 @@ export const listCompanyActiveTrips = async (userId) => {
   }
 };
 
+export const listCompanyRoutes = async (userId) => {
+  try {
+    const routes = await tripRepo.listCompanyRoutesByUser(userId);
+    return routes;
+  } catch (error) {
+    throw error;
+  }
+};
+
 export const createCompanyTrip = async ({ body, userId }) => {
   try {
     const payload = body?.data ?? body;

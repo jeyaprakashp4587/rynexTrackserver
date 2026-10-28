@@ -9,6 +9,7 @@ import {
   getDriverCurrentTripDetails,
   getTripRequestDetails,
   listCompanyActiveTrips,
+  listCompanyRoutes,
   listTripRequests,
 } from "./controller/trip.controller.js";
 
@@ -29,7 +30,8 @@ router.post(
   acceptTripRequestForDriver
 );
 router.get("/driver/current", verifyToken, getDriverCurrentTripDetails);
-router.post("/company/create", verifyToken, createCompanyTrip);
+router.post("/company/routes", verifyToken, createCompanyTrip);
+router.get("/company/routes", verifyToken, listCompanyRoutes);
 router.get("/company/active", verifyToken, listCompanyActiveTrips);
 router.get("/company/:tripId", verifyToken, getCompanyTripDetails);
 

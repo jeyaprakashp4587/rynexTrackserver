@@ -1,7 +1,7 @@
 import mongoose from "mongoose";
 import tripRequests from "../models/tripRequests.model.js";
 import TripStops from "../models/tripStops.model.js";
-import { trip as CompanyTrip } from "../models/company.trip.models.js";
+import { companyRoutes } from "../models/company.tripRoute.models.js";
 import { TRIP_STATUS, TRIP_TYPE } from "../constants/trip.constants.js";
 
 import {
@@ -199,6 +199,28 @@ export const updateRecipientStopStatus = async (
 
 export const listCompanyCurrentTrips = async (userId) => {
   return trip.aggregate(buildCompanyActiveTripsPipeline(userId));
+};
+
+export const listCompanyRoutesByUser = async (userId) => {
+  return companyRoutes.aggregate([
+    {
+      $match: {
+        createdBy: new mongoose.Types.ObjectId(userId),
+        isDailyTrip: true,
+      },
+    },
+    {
+      $lookup: {
+        from: "tripstops",
+        localField: "_id",
+        foreignField: "companyTripId",
+        as: "stops",
+      },
+    },
+    {
+      $sort: { createdAt: -1 },
+    },
+  ]);
 };
 
 export const getCompanyTripDetailsById = async (tripId, userId) => {
