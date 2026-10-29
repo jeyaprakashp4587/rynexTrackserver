@@ -277,8 +277,7 @@ export const getDriverCurrentTripDetails = async (userId) => {
 };
 
 export const updateTripStopProgress = async ({ body, userId }) => {
-  const { tripId, stopSequence, status, proofPhotos } =
-    parseStopProgress(body);
+  const { tripId, stopSequence, status, proofPhotos } = parseStopProgress(body);
 
   const recipientId = await tripRepo.findRecipientIdForTripAndUser(
     tripId,
