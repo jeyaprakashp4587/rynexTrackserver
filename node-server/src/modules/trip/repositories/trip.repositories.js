@@ -6,6 +6,7 @@ import { TRIP_STATUS, TRIP_TYPE } from "../constants/trip.constants.js";
 
 import {
   buildCompanyActiveTripsPipeline,
+  buildCompanyRoutesListPipeline,
   buildCompanyTripDetailPipeline,
   buildDriverCurrentTripPipeline,
   buildRecipientStopsPipeline,
@@ -202,25 +203,7 @@ export const listCompanyCurrentTrips = async (userId) => {
 };
 
 export const listCompanyRoutesByUser = async (userId) => {
-  return companyRoutes.aggregate([
-    {
-      $match: {
-        createdBy: new mongoose.Types.ObjectId(userId),
-        isDailyTrip: true,
-      },
-    },
-    {
-      $lookup: {
-        from: "tripstops",
-        localField: "_id",
-        foreignField: "companyTripId",
-        as: "stops",
-      },
-    },
-    {
-      $sort: { createdAt: -1 },
-    },
-  ]);
+  return companyRoutes.aggregate(buildCompanyRoutesListPipeline(userId));
 };
 
 export const getCompanyTripDetailsById = async (tripId, userId) => {

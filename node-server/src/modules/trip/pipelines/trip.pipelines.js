@@ -563,6 +563,137 @@ export const buildRecipientStopsPipeline = (tripId, recipientId) => {
   ];
 };
 
+export const buildCompanyRoutesListPipeline = (userId) => {
+  return [
+    {
+      $match: {
+        createdBy: new mongoose.Types.ObjectId(userId),
+        isDailyTrip: true,
+      },
+    },
+    {
+      $lookup: {
+        from: "tripstops",
+        localField: "_id",
+        foreignField: "companyTripId",
+        as: "stops",
+      },
+    },
+    {
+      $lookup: {
+        from: "users",
+        localField: "recipients.driverUserId",
+        foreignField: "_id",
+        as: "receiptDriverUsers",
+        pipeline: [
+          { $project: { _id: 1, Name: 1, MobileNumber: 1, image: 1 } },
+        ],
+      },
+    },
+    {
+      $lookup: {
+        from: "drivers",
+        localField: "recipients.driverId",
+        foreignField: "_id",
+        as: "receiptDrivers",
+        pipeline: [
+          { $project: { _id: 1, name: 1, MobileNumber: 1, image: 1 } },
+        ],
+      },
+    },
+    {
+      $lookup: {
+        from: "vehicles",
+        localField: "recipients.vehicleId",
+        foreignField: "_id",
+        as: "receiptVehicles",
+        pipeline: [
+          { $project: { _id: 1, vehicleNumber: 1, vehicleModel: 1, image: 1 } },
+        ],
+      },
+    },
+    {
+      $addFields: {
+        recipients: {
+          $map: {
+            input: "$recipients",
+            as: "r",
+            in: {
+              $mergeObjects: [
+                "$$r",
+                {
+                  driverUser: {
+                    $arrayElemAt: [
+                      {
+                        $filter: {
+                          input: "$receiptDriverUsers",
+                          as: "u",
+                          cond: {
+                            $eq: [
+                              { $toString: { $ifNull: ["$$u._id", ""] } },
+                              {
+                                $toString: {
+                                  $ifNull: ["$$r.driverUserId", ""],
+                                },
+                              },
+                            ],
+                          },
+                        },
+                      },
+                      0,
+                    ],
+                  },
+                },
+                {
+                  driver: {
+                    $arrayElemAt: [
+                      {
+                        $filter: {
+                          input: "$receiptDrivers",
+                          as: "d",
+                          cond: {
+                            $eq: [
+                              { $toString: { $ifNull: ["$$d._id", ""] } },
+                              { $toString: { $ifNull: ["$$r.driverId", ""] } },
+                            ],
+                          },
+                        },
+                      },
+                      0,
+                    ],
+                  },
+                },
+                {
+                  vehicle: {
+                    $arrayElemAt: [
+                      {
+                        $filter: {
+                          input: "$receiptVehicles",
+                          as: "v",
+                          cond: {
+                            $eq: [
+                              { $toString: { $ifNull: ["$$v._id", ""] } },
+                              { $toString: { $ifNull: ["$$r.vehicleId", ""] } },
+                            ],
+                          },
+                        },
+                      },
+                      0,
+                    ],
+                  },
+                },
+              ],
+            },
+          },
+        },
+      },
+    },
+    {
+      $sort: { createdAt: -1 },
+    },
+  ];
+};
+
 export const buildCompanyActiveTripsPipeline = (userId) => {
   return [
     {
