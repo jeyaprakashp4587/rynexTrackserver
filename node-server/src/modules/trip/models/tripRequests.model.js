@@ -1,88 +1,69 @@
 import mongoose from "mongoose";
 import { DB1 } from "../../../config/db.js";
 import {
+  CANDIDATE_STATUSES,
+  DEFAULT_VEHICLES_REQUIRED,
+  REQUEST_STATUSES,
   TRIP_MODE,
   TRIP_STATUS,
   TRIP_TYPE,
 } from "../constants/trip.constants.js";
 
+const { ObjectId } = mongoose.Schema.Types;
+
+const candidateSchema = new mongoose.Schema({
+  userId: { type: ObjectId, ref: "User", required: true },
+  driverId: { type: ObjectId, ref: "Driver" },
+  driverUserId: { type: ObjectId, ref: "User" },
+  vehicleId: { type: ObjectId, ref: "Vehicle" },
+  status: {
+    type: String,
+    enum: CANDIDATE_STATUSES,
+    default: TRIP_STATUS.PENDING,
+  },
+  assignedBy: { type: ObjectId, ref: "User" },
+  assignedAt: { type: Date, default: Date.now },
+  acceptedAt: Date,
+  rejectedAt: Date,
+});
+
 const tripRequests = new mongoose.Schema({
   createdBy: [
     {
-      type: mongoose.Schema.Types.ObjectId,
+      type: ObjectId,
       ref: "User",
       required: true,
     },
   ],
 
-  recipients: [
-    {
-      userId: {
-        type: mongoose.Schema.Types.ObjectId,
-        required: true,
-      },
-
-      driverId: {
-        type: mongoose.Schema.Types.ObjectId,
-        ref: "Driver",
-      },
-      driverUserId: {
-        type: mongoose.Schema.Types.ObjectId,
-      },
-      vehicleId: {
-        type: mongoose.Schema.Types.ObjectId,
-        ref: "Vehicle",
-      },
-
-      status: {
-        type: String,
-        enum: [
-          TRIP_STATUS.PENDING,
-          TRIP_STATUS.ACCEPTED,
-          TRIP_STATUS.REJECTED,
-          TRIP_STATUS.CANCELLED,
-          TRIP_STATUS.TIMEOUT,
-        ],
-        default: TRIP_STATUS.PENDING,
-      },
-
-      assignedBy: {
-        type: mongoose.Schema.Types.ObjectId,
-        ref: "User",
-      },
-
-      assignedAt: {
-        type: Date,
-        default: Date.now,
-      },
-    },
-  ],
+  recipients: [candidateSchema],
 
   status: {
     type: String,
-    enum: [
-      TRIP_STATUS.PENDING,
-      TRIP_STATUS.ACCEPTED,
-      TRIP_STATUS.REJECTED,
-      TRIP_STATUS.CANCELLED,
-      TRIP_STATUS.EXPIRED,
-      TRIP_STATUS.WAITING_FOR_DRIVER,
-    ],
+    enum: REQUEST_STATUSES,
     default: TRIP_STATUS.PENDING,
   },
+
+  vehiclesRequired: {
+    type: Number,
+    default: DEFAULT_VEHICLES_REQUIRED,
+    min: 1,
+  },
+
+  acceptedCount: {
+    type: Number,
+    default: 0,
+    min: 0,
+  },
+
   tripType: {
     type: String,
-    enum: [TRIP_TYPE.COMPANY, TRIP_TYPE.INDEPENDENT, TRIP_TYPE.HYBRID],
+    enum: Object.values(TRIP_TYPE),
     default: TRIP_TYPE.INDEPENDENT,
   },
   tripStopMode: {
     type: String,
-    enum: [
-      TRIP_MODE.DISTRIBUTION,
-      TRIP_MODE.SINGLE,
-      TRIP_MODE.RETURN_TRIP,
-      TRIP_MODE.MULTI_STOP,
-    ],
+    enum: Object.values(TRIP_MODE),
     default: TRIP_MODE.SINGLE,
   },
   createdAt: {
@@ -93,5 +74,7 @@ const tripRequests = new mongoose.Schema({
 
 tripRequests.index({ createdAt: 1 });
 tripRequests.index({ status: 1 });
+tripRequests.index({ "recipients.userId": 1, status: 1 });
+tripRequests.index({ createdBy: 1, status: 1 });
 
 export default DB1.model("TripRequests", tripRequests);

@@ -1,0 +1,91 @@
+import mongoose from "mongoose";
+import { TRIP_MODE, TRIP_STATUS } from "../constants/trip.constants.js";
+import { DB1 } from "../../../config/db.js";
+
+const companyRoutesSchema = new mongoose.Schema(
+  {
+    tripStopMode: {
+      type: String,
+      enum: [TRIP_MODE.MULTI_STOP, TRIP_MODE.SINGLE],
+      default: TRIP_MODE.MULTI_STOP,
+    },
+
+    status: {
+      type: String,
+      enum: [
+        TRIP_STATUS.PENDING,
+        TRIP_STATUS.ACCEPTED,
+        TRIP_STATUS.REJECTED,
+        TRIP_STATUS.CANCELLED,
+        TRIP_STATUS.EXPIRED,
+        TRIP_STATUS.COMPLETED,
+        TRIP_STATUS.WAITING_FOR_DRIVER,
+      ],
+      default: TRIP_STATUS.WAITING_FOR_DRIVER,
+    },
+
+    createdBy: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "User",
+      required: true,
+    },
+    recipients: [
+      {
+        userId: {
+          type: mongoose.Schema.Types.ObjectId,
+        },
+        driverId: {
+          type: mongoose.Schema.Types.ObjectId,
+        },
+        driverUserId: {
+          type: mongoose.Schema.Types.ObjectId,
+        },
+        status: {
+          type: String,
+          enum: [
+            TRIP_STATUS.PENDING,
+            TRIP_STATUS.ACCEPTED,
+            TRIP_STATUS.REJECTED,
+            TRIP_STATUS.CANCELLED,
+            TRIP_STATUS.COMPLETED,
+            TRIP_STATUS.EXPIRED,
+          ],
+          default: TRIP_STATUS.PENDING,
+        },
+        acceptedAt: Date,
+        rejectedAt: Date,
+        cancelledAt: Date,
+        completedAt: Date,
+        cancelReason: String,
+        currentStopIndex: {
+          type: Number,
+          default: 1,
+        },
+        vehicleId: {},
+        assignedBy: {},
+        assignedAt: {},
+      },
+    ],
+    totalDistanceKm: Number,
+    totalDurationMin: Number,
+    isDailyTrip: {
+      type: Boolean,
+      default: false,
+    },
+    isTripEnded: {
+      type: Boolean,
+      default: false,
+    },
+
+    startedAt: Date,
+    completedAt: Date,
+  },
+  {
+    timestamps: true,
+  }
+);
+
+export const companyRoutes = DB1.model(
+  "CompanyTripRoutes",
+  companyRoutesSchema
+);

@@ -1,236 +1,155 @@
 import * as tripService from "../services/trip.services.js";
-
+import {
+  TRIP_FAILURES,
+  TRIP_RESPONSES,
+} from "../constants/trip.messages.js";
 import {
   successResponse,
   errorResponse,
 } from "../../../shared/utils/response.js";
 
-export const createTripRequest = async (req, res) => {
-  try {
-    const requestType = (
-      req.params?.requestType ||
-      req.body?.requestType ||
-      "USER"
-    ).toUpperCase();
+const HTTP_OK = 200;
+const HTTP_SERVER_ERROR = 500;
 
-    const result = await tripService.createTripRequest({
+const handle =
+  (run, { failureMessage, exposeError = false }) =>
+  async (req, res) => {
+    try {
+      const { message, data } = await run(req);
+
+      return successResponse({ res, statusCode: HTTP_OK, message, data });
+    } catch (error) {
+      return errorResponse({
+        res,
+        statusCode: HTTP_SERVER_ERROR,
+        message: exposeError ? error.message || failureMessage : failureMessage,
+      });
+    }
+  };
+
+const withData = (message, data) => ({ message, data });
+
+export const createTripRequest = handle(
+  async (req) => {
+    const data = await tripService.createTripRequest({
       body: req.body,
       userId: req.userId,
-      requestType,
+      requestType: req.params?.requestType,
     });
 
-    return successResponse({
-      res,
-      data: result,
-      message: "Trip requested successfully",
-      statusCode: 200,
-    });
-  } catch (error) {
-    console.log(error);
+    return withData(TRIP_RESPONSES.REQUESTED, data);
+  },
+  { failureMessage: TRIP_FAILURES.REQUEST }
+);
 
-    return errorResponse({
-      res,
-      statusCode: 500,
-      message: "Failed to request trip",
-    });
-  }
-};
-// this for both driver and owner
-export const listTripRequests = async (req, res) => {
-  try {
-    // console.log("triiger");
+export const listTripRequests = handle(
+  async (req) =>
+    withData(
+      TRIP_RESPONSES.FETCHED,
+      await tripService.listTripRequests(req.userId)
+    ),
+  { failureMessage: TRIP_FAILURES.LIST }
+);
 
-    const trips = await tripService.listTripRequests(req.userId);
+export const getTripRequestDetails = handle(
+  async (req) =>
+    withData(
+      TRIP_RESPONSES.FETCHED_ONE,
+      await tripService.getTripRequestDetails(req.params.tripId, req.userId)
+    ),
+  { failureMessage: TRIP_FAILURES.GET_ONE }
+);
 
-    return successResponse({
-      res,
-      data: trips,
-      message: "Trips fetched successfully",
-      statusCode: 200,
-    });
-  } catch (error) {
-    return errorResponse({
-      res,
-      statusCode: 500,
-      message: "Failed to get trips",
-    });
-  }
-};
-
-export const getTripRequestDetails = async (req, res) => {
-  try {
-    const { tripId } = req.params;
-
-    const trip = await tripService.getTripRequestDetails(tripId, req.userId);
-
-    return successResponse({
-      res,
-      statusCode: 200,
-      message: "Trip fetched successfully",
-      data: trip,
-    });
-  } catch (error) {
-    return errorResponse({
-      res,
-      statusCode: 500,
-      message: "Failed to get trip",
-    });
-  }
-};
-
-export const acceptTripRequestForOwner = async (req, res) => {
-  try {
+export const acceptTripRequestForOwner = handle(
+  async (req) => {
     const result = await tripService.acceptTripRequestForOwner({
       body: { ...req.body, tripId: req.params.tripId || req.body.tripId },
       userId: req.userId,
       tripId: req.params.tripId,
     });
 
-    return successResponse({
-      res,
-      statusCode: 200,
-      message: result.message,
-      data: result.trip,
-    });
-  } catch (error) {
-    return errorResponse({ res, statusCode: 500, message: error.message });
-  }
-};
+    return withData(result.message, result.trip);
+  },
+  { failureMessage: TRIP_FAILURES.ACTION, exposeError: true }
+);
 
-export const acceptTripRequestForDriver = async (req, res) => {
-  try {
+export const acceptTripRequestForDriver = handle(
+  async (req) => {
     const result = await tripService.acceptTripRequestForDriver({
       userId: req.userId,
       tripId: req.params.tripId,
     });
 
-    return successResponse({
-      res,
-      statusCode: 200,
-      message: result.message,
-      data: result.trip,
-    });
-  } catch (error) {
-    return errorResponse({ res, statusCode: 500, message: error.message });
-  }
-};
+    return withData(result.message, result.trip);
+  },
+  { failureMessage: TRIP_FAILURES.ACTION, exposeError: true }
+);
 
-export const getDriverCurrentTripDetails = async (req, res) => {
-  try {
-    const trip = await tripService.getDriverCurrentTripDetails(req.userId);
-    return successResponse({
-      res,
-      statusCode: 200,
-      message: "Trip fetched successfully",
-      data: trip,
+export const rejectTripRequestForDriver = handle(
+  async (req) => {
+    const result = await tripService.rejectTripRequestForDriver({
+      userId: req.userId,
+      tripId: req.params.tripId,
     });
-  } catch (error) {
-    return errorResponse({
-      res,
-      statusCode: 500,
-      message: "Failed to get trip",
-    });
-  }
-};
 
-export const updateTripStopProgress = async (req, res) => {
-  try {
-    const result = await tripService.updateTripStopProgress({
+    return withData(result.message, result.trip);
+  },
+  { failureMessage: TRIP_FAILURES.ACTION, exposeError: true }
+);
+
+export const getDriverCurrentTripDetails = handle(
+  async (req) =>
+    withData(
+      TRIP_RESPONSES.FETCHED_ONE,
+      await tripService.getDriverCurrentTripDetails(req.userId)
+    ),
+  { failureMessage: TRIP_FAILURES.GET_ONE }
+);
+
+export const updateTripStopProgress = handle(
+  async (req) =>
+    tripService.updateTripStopProgress({
       body: req.body,
       userId: req.userId,
-    });
+    }),
+  { failureMessage: TRIP_FAILURES.ACTION, exposeError: true }
+);
 
-    return successResponse({
-      res,
-      statusCode: 200,
-      message: result.message,
-    });
-  } catch (error) {
-    return errorResponse({
-      res,
-      statusCode: 500,
-      message: error.message,
-    });
-  }
-};
+export const createCompanyTrip = handle(
+  async (req) =>
+    withData(
+      TRIP_RESPONSES.COMPANY_TRIP_CREATED,
+      await tripService.createCompanyTrip({
+        body: req.body,
+        userId: req.userId,
+      })
+    ),
+  { failureMessage: TRIP_FAILURES.CREATE_COMPANY_TRIP, exposeError: true }
+);
 
-export const createCompanyTrip = async (req, res) => {
-  try {
-    const result = await tripService.createCompanyTrip({
-      body: req.body,
-      userId: req.userId,
-    });
+export const listCompanyActiveTrips = handle(
+  async (req) =>
+    withData(
+      TRIP_RESPONSES.FETCHED,
+      await tripService.listCompanyActiveTrips(req.userId)
+    ),
+  { failureMessage: TRIP_FAILURES.LIST }
+);
 
-    return successResponse({
-      res,
-      statusCode: 200,
-      message: "Company trip created successfully",
-      data: result,
-    });
-  } catch (error) {
-    return errorResponse({
-      res,
-      statusCode: 500,
-      message: error.message || "Failed to create company trip",
-    });
-  }
-};
+export const listCompanyRoutes = handle(
+  async (req) =>
+    withData(
+      TRIP_RESPONSES.COMPANY_ROUTES_FETCHED,
+      await tripService.listCompanyRoutes(req.userId)
+    ),
+  { failureMessage: TRIP_FAILURES.COMPANY_ROUTES, exposeError: true }
+);
 
-export const listCompanyActiveTrips = async (req, res) => {
-  try {
-    const trips = await tripService.listCompanyActiveTrips(req.userId);
-
-    return successResponse({
-      res,
-      statusCode: 200,
-      message: "Trips fetched successfully",
-      data: trips,
-    });
-  } catch (error) {
-    return errorResponse({
-      res,
-      statusCode: 500,
-      message: "Failed to get trips",
-    });
-  }
-};
-
-export const listCompanyRoutes = async (req, res) => {
-  try {
-    const routes = await tripService.listCompanyRoutes(req.userId);
-
-    return successResponse({
-      res,
-      statusCode: 200,
-      message: "Company routes fetched successfully",
-      data: routes,
-    });
-  } catch (error) {
-    return errorResponse({
-      res,
-      statusCode: 500,
-      message: error.message || "Failed to get company routes",
-    });
-  }
-};
-
-export const getCompanyTripDetails = async (req, res) => {
-  try {
-    const { tripId } = req.params;
-
-    const trip = await tripService.getCompanyTripDetails(tripId, req.userId);
-
-    return successResponse({
-      res,
-      statusCode: 200,
-      message: "Trip fetched successfully",
-      data: trip,
-    });
-  } catch (error) {
-    return errorResponse({
-      res,
-      statusCode: 500,
-      message: "Failed to get trip",
-    });
-  }
-};
+export const getCompanyTripDetails = handle(
+  async (req) =>
+    withData(
+      TRIP_RESPONSES.FETCHED_ONE,
+      await tripService.getCompanyTripDetails(req.params.tripId, req.userId)
+    ),
+  { failureMessage: TRIP_FAILURES.GET_ONE }
+);

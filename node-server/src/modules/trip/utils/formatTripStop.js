@@ -1,13 +1,26 @@
+import { GEO_POINT_TYPE } from "../constants/trip.constants.js";
+import { TRIP_ERRORS } from "../constants/trip.messages.js";
+
+const isCoordinate = (value) => typeof value === "number" && Number.isFinite(value);
+
 export const formatTripStop = (stops) => {
-  return stops.map((stop, index) => ({
-    locationName: stop.locationName,
-    coords: {
-      type: "Point",
-      coordinates: [stop.coords.lon, stop.coords.lat],
-    },
-    sequence: index + 1,
-    stopType: stop.stopType,
-    contactPerson: stop.contactPerson,
-    contactPhone: stop.contactPhone,
-  }));
+  return stops.map((stop, index) => {
+    const { lat, lon } = stop?.coords ?? {};
+
+    if (!isCoordinate(lat) || !isCoordinate(lon)) {
+      throw new Error(TRIP_ERRORS.INVALID_STOP_COORDINATES);
+    }
+
+    return {
+      locationName: stop.locationName,
+      coords: {
+        type: GEO_POINT_TYPE,
+        coordinates: [lon, lat],
+      },
+      sequence: index + 1,
+      stopType: stop.stopType,
+      contactPerson: stop.contactPerson,
+      contactPhone: stop.contactPhone,
+    };
+  });
 };

@@ -11,6 +11,7 @@ import {
   listCompanyActiveTrips,
   listCompanyRoutes,
   listTripRequests,
+  rejectTripRequestForDriver,
 } from "./controller/trip.controller.js";
 
 const router = Router();
@@ -28,6 +29,11 @@ router.post(
   "/requests/:tripId/accept-driver",
   verifyToken,
   acceptTripRequestForDriver
+);
+router.post(
+  "/requests/:tripId/reject-driver",
+  verifyToken,
+  rejectTripRequestForDriver
 );
 router.get("/driver/current", verifyToken, getDriverCurrentTripDetails);
 router.post("/company/routes", verifyToken, createCompanyTrip);

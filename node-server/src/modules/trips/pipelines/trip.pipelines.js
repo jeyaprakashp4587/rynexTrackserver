@@ -1,0 +1,931 @@
+import mongoose from "mongoose";
+
+import { TRIP_STATUS } from "../constants/trip.constants.js";
+import { ROLES } from "../../../shared/constants/role.js";
+
+export const buildTripRequestListPipeline = (userId) => {
+  const userObjectId = new mongoose.Types.ObjectId(userId);
+  return [
+    {
+      $match: {
+        $or: [
+          {
+            recipients: {
+              $elemMatch: {
+                userId: userObjectId,
+                status: TRIP_STATUS.PENDING,
+              },
+            },
+          },
+
+          {
+            createdBy: userObjectId,
+            recipients: {
+              $elemMatch: {
+                status: TRIP_STATUS.PENDING,
+              },
+            },
+          },
+        ],
+      },
+    },
+
+    {
+      $lookup: {
+        from: "tripstops",
+        localField: "_id",
+        foreignField: "tripRequestId",
+        as: "tripStops",
+      },
+    },
+
+    {
+      $unwind: "$tripStops",
+    },
+
+    {
+      $addFields: {
+        currentRecipient: {
+          $let: {
+            vars: {
+              userPendingRecipient: {
+                $filter: {
+                  input: "$recipients",
+                  as: "recipient",
+                  cond: {
+                    $and: [
+                      {
+                        $eq: ["$$recipient.userId", userObjectId],
+                      },
+                      {
+                        $eq: ["$$recipient.status", TRIP_STATUS.PENDING],
+                      },
+                    ],
+                  },
+                },
+              },
+            },
+
+            in: {
+              $cond: [
+                {
+                  $gt: [{ $size: "$$userPendingRecipient" }, 0],
+                },
+
+                "$$userPendingRecipient",
+
+                {
+                  $filter: {
+                    input: "$recipients",
+                    as: "recipient",
+                    cond: {
+                      $eq: ["$$recipient.status", TRIP_STATUS.PENDING],
+                    },
+                  },
+                },
+              ],
+            },
+          },
+        },
+      },
+    },
+
+    {
+      $unwind: {
+        path: "$currentRecipient",
+        preserveNullAndEmptyArrays: true,
+      },
+    },
+
+    {
+      $lookup: {
+        from: "users",
+        localField: "createdBy",
+        foreignField: "_id",
+        pipeline: [
+          {
+            $project: {
+              _id: 1,
+              Name: 1,
+              MobileNumber: 1,
+            },
+          },
+        ],
+        as: "createdBy",
+      },
+    },
+
+    {
+      $unwind: {
+        path: "$createdBy",
+        preserveNullAndEmptyArrays: true,
+      },
+    },
+
+    {
+      $lookup: {
+        from: "drivers",
+        localField: "currentRecipient.driverId",
+        foreignField: "_id",
+        pipeline: [
+          {
+            $project: {
+              _id: 1,
+              name: 1,
+              phone: 1,
+              currentLocation: 1,
+            },
+          },
+        ],
+        as: "driver",
+      },
+    },
+
+    {
+      $unwind: {
+        path: "$driver",
+        preserveNullAndEmptyArrays: true,
+      },
+    },
+
+    {
+      $lookup: {
+        from: "vehicles",
+        localField: "currentRecipient.vehicleId",
+        foreignField: "_id",
+        pipeline: [
+          {
+            $project: {
+              _id: 1,
+              vehicleNumber: 1,
+              vehicleModel: 1,
+              vehicleImage: 1,
+            },
+          },
+        ],
+        as: "vehicle",
+      },
+    },
+
+    {
+      $unwind: {
+        path: "$vehicle",
+        preserveNullAndEmptyArrays: true,
+      },
+    },
+
+    {
+      $project: {
+        _id: 1,
+        createdAt: 1,
+
+        createdBy: 1,
+
+        tripType: 1,
+        tripStopMode: 1,
+        tripMode: 1,
+
+        stops: "$tripStops",
+
+        status: 1,
+
+        currentRecipient: 1,
+
+        driver: 1,
+
+        vehicle: 1,
+      },
+    },
+  ];
+};
+
+export const buildTripRequestDetailPipeline = (tripId, userId) => {
+  const userObjectId = new mongoose.Types.ObjectId(userId);
+
+  return [
+    { $match: { _id: new mongoose.Types.ObjectId(tripId) } },
+    {
+      $lookup: {
+        from: "tripstops",
+        localField: "_id",
+        foreignField: "tripRequestId",
+        as: "stops",
+      },
+    },
+    {
+      $unwind: "$stops",
+    },
+    {
+      $lookup: {
+        from: "users",
+        let: { uid: userObjectId },
+        pipeline: [
+          { $match: { $expr: { $eq: ["$_id", "$$uid"] } } },
+          { $project: { role: 1 } },
+        ],
+        as: "requestingUser",
+      },
+    },
+    {
+      $lookup: {
+        from: "users",
+        localField: "recipients.userId",
+        foreignField: "_id",
+        as: "receiptUsers",
+        pipeline: [{ $project: { Name: 1 } }],
+      },
+    },
+    {
+      $lookup: {
+        from: "drivers",
+        localField: "recipients.driverId",
+        foreignField: "_id",
+        as: "receiptDrivers",
+        pipeline: [{ $project: { name: 1, image: 1, MobileNumber: 1 } }],
+      },
+    },
+    {
+      $lookup: {
+        from: "vehicles",
+        localField: "recipients.vehicleId",
+        foreignField: "_id",
+        as: "receiptVehicles",
+        pipeline: [{ $project: { vehicleNumber: 1, vehicleModel: 1 } }],
+      },
+    },
+    {
+      $addFields: {
+        enrichedReceipts: {
+          $map: {
+            input: "$recipients",
+            as: "r",
+            in: {
+              $mergeObjects: [
+                "$$r",
+                {
+                  user: {
+                    $arrayElemAt: [
+                      {
+                        $filter: {
+                          input: "$receiptUsers",
+                          as: "u",
+                          cond: {
+                            $eq: [
+                              { $toString: "$$u._id" },
+                              { $toString: "$$r.userId" },
+                            ],
+                          },
+                        },
+                      },
+                      0,
+                    ],
+                  },
+                },
+                {
+                  driver: {
+                    $arrayElemAt: [
+                      {
+                        $filter: {
+                          input: "$receiptDrivers",
+                          as: "d",
+                          cond: {
+                            $eq: [
+                              { $toString: "$$d._id" },
+                              { $toString: "$$r.driverId" },
+                            ],
+                          },
+                        },
+                      },
+                      0,
+                    ],
+                  },
+                },
+                {
+                  vehicle: {
+                    $arrayElemAt: [
+                      {
+                        $filter: {
+                          input: "$receiptVehicles",
+                          as: "v",
+                          cond: {
+                            $eq: [
+                              { $toString: "$$v._id" },
+                              { $toString: "$$r.vehicleId" },
+                            ],
+                          },
+                        },
+                      },
+                      0,
+                    ],
+                  },
+                },
+              ],
+            },
+          },
+        },
+        requestingUserRole: { $arrayElemAt: ["$requestingUser.role", 0] },
+      },
+    },
+    {
+      $addFields: {
+        users: {
+          $cond: [
+            { $eq: ["$requestingUserRole", ROLES.DRIVER] },
+            {
+              $filter: {
+                input: "$enrichedReceipts",
+                as: "r",
+                cond: {
+                  $eq: [{ $toString: "$$r.userId" }, userId.toString()],
+                },
+              },
+            },
+            "$enrichedReceipts",
+          ],
+        },
+      },
+    },
+    {
+      $project: {
+        recipients: 0,
+        receiptUsers: 0,
+        receiptDrivers: 0,
+        receiptVehicles: 0,
+        enrichedReceipts: 0,
+        requestingUser: 0,
+        requestingUserRole: 0,
+      },
+    },
+  ];
+};
+
+export const buildDriverCurrentTripPipeline = (recipientId) => {
+  return [
+    // Find accepted trip
+    {
+      $match: {
+        status: TRIP_STATUS.ACCEPTED,
+      },
+    },
+
+    // Split recipients array
+    {
+      $unwind: "$recipients",
+    },
+
+    // Filter only matched recipient
+    {
+      $match: {
+        "recipients.userId": new mongoose.Types.ObjectId(recipientId),
+        "recipients.status": TRIP_STATUS.ACCEPTED,
+      },
+    },
+
+    // USER LOOKUP
+    {
+      $lookup: {
+        from: "users",
+        localField: "recipients.userId",
+        foreignField: "_id",
+        as: "user",
+      },
+    },
+
+    {
+      $unwind: {
+        path: "$user",
+        preserveNullAndEmptyArrays: true,
+      },
+    },
+
+    // DRIVER LOOKUP
+    {
+      $lookup: {
+        from: "drivers",
+        localField: "recipients.driverId",
+        foreignField: "_id",
+        as: "driver",
+      },
+    },
+
+    {
+      $unwind: {
+        path: "$driver",
+        preserveNullAndEmptyArrays: true,
+      },
+    },
+
+    // VEHICLE LOOKUP
+    {
+      $lookup: {
+        from: "vehicles",
+        localField: "recipients.vehicleId",
+        foreignField: "_id",
+        as: "vehicle",
+      },
+    },
+
+    {
+      $unwind: {
+        path: "$vehicle",
+        preserveNullAndEmptyArrays: true,
+      },
+    },
+
+    // GROUP BACK TO SINGLE TRIP
+    {
+      $group: {
+        _id: "$_id",
+
+        tripRequestId: {
+          $first: "$tripRequestId",
+        },
+
+        createdBy: {
+          $first: "$createdBy",
+        },
+
+        status: {
+          $first: "$status",
+        },
+
+        tripStopMode: {
+          $first: "$tripStopMode",
+        },
+
+        users: {
+          $push: {
+            recipientId: "$recipients._id",
+            status: "$recipients.status",
+            currentStopIndex: "$recipients.currentStopIndex",
+            user: {
+              _id: "$user._id",
+              Name: "$user.Name",
+              MobileNumber: "$user.MobileNumber",
+            },
+
+            driver: {
+              _id: "$driver._id",
+              name: "$driver.name",
+            },
+
+            vehicle: {
+              _id: "$vehicle._id",
+              vehicleNumber: "$vehicle.vehicleNumber",
+              vehicleModel: "$vehicle.vehicleModel",
+            },
+          },
+        },
+      },
+    },
+
+    // Optional clean response
+    {
+      $project: {
+        _id: 1,
+        tripRequestId: 1,
+        createdBy: 1,
+        status: 1,
+        tripStopMode: 1,
+        users: 1,
+      },
+    },
+  ];
+};
+
+export const buildRecipientStopsPipeline = (tripId, recipientId) => {
+  return [
+    {
+      $match: {
+        tripId: new mongoose.Types.ObjectId(tripId),
+      },
+    },
+    // filter stops
+    {
+      $project: {
+        tripId: 1,
+        tripRequestId: 1,
+
+        stops: {
+          $map: {
+            input: {
+              $filter: {
+                input: "$stops",
+                as: "stop",
+                cond: {
+                  $gt: [
+                    {
+                      $size: {
+                        $filter: {
+                          input: "$$stop.recipientsMeta",
+                          as: "meta",
+                          cond: {
+                            $eq: [
+                              "$$meta.recipientId",
+                              new mongoose.Types.ObjectId(recipientId),
+                            ],
+                          },
+                        },
+                      },
+                    },
+                    0,
+                  ],
+                },
+              },
+            },
+
+            as: "stop",
+
+            in: {
+              _id: "$$stop._id",
+              sequence: "$$stop.sequence",
+              stopType: "$$stop.stopType",
+              locationName: "$$stop.locationName",
+              coords: "$$stop.coords",
+
+              recipientsMeta: {
+                $filter: {
+                  input: "$$stop.recipientsMeta",
+                  as: "meta",
+                  cond: {
+                    $eq: [
+                      "$$meta.recipientId",
+                      new mongoose.Types.ObjectId(recipientId),
+                    ],
+                  },
+                },
+              },
+            },
+          },
+        },
+      },
+    },
+  ];
+};
+
+export const buildCompanyRoutesListPipeline = (userId) => {
+  return [
+    {
+      $match: {
+        createdBy: new mongoose.Types.ObjectId(userId),
+        isDailyTrip: true,
+      },
+    },
+    {
+      $lookup: {
+        from: "tripstops",
+        localField: "_id",
+        foreignField: "companyTripId",
+        as: "stops",
+      },
+    },
+    {
+      $lookup: {
+        from: "users",
+        localField: "recipients.driverUserId",
+        foreignField: "_id",
+        as: "receiptDriverUsers",
+        pipeline: [
+          { $project: { _id: 1, Name: 1, MobileNumber: 1, image: 1 } },
+        ],
+      },
+    },
+    {
+      $lookup: {
+        from: "drivers",
+        localField: "recipients.driverId",
+        foreignField: "_id",
+        as: "receiptDrivers",
+        pipeline: [
+          { $project: { _id: 1, name: 1, MobileNumber: 1, image: 1 } },
+        ],
+      },
+    },
+    {
+      $lookup: {
+        from: "vehicles",
+        localField: "recipients.vehicleId",
+        foreignField: "_id",
+        as: "receiptVehicles",
+        pipeline: [
+          { $project: { _id: 1, vehicleNumber: 1, vehicleModel: 1, image: 1 } },
+        ],
+      },
+    },
+    {
+      $addFields: {
+        recipients: {
+          $map: {
+            input: "$recipients",
+            as: "r",
+            in: {
+              $mergeObjects: [
+                "$$r",
+                {
+                  driverUser: {
+                    $arrayElemAt: [
+                      {
+                        $filter: {
+                          input: "$receiptDriverUsers",
+                          as: "u",
+                          cond: {
+                            $eq: [
+                              { $toString: { $ifNull: ["$$u._id", ""] } },
+                              {
+                                $toString: {
+                                  $ifNull: ["$$r.driverUserId", ""],
+                                },
+                              },
+                            ],
+                          },
+                        },
+                      },
+                      0,
+                    ],
+                  },
+                },
+                {
+                  driver: {
+                    $arrayElemAt: [
+                      {
+                        $filter: {
+                          input: "$receiptDrivers",
+                          as: "d",
+                          cond: {
+                            $eq: [
+                              { $toString: { $ifNull: ["$$d._id", ""] } },
+                              { $toString: { $ifNull: ["$$r.driverId", ""] } },
+                            ],
+                          },
+                        },
+                      },
+                      0,
+                    ],
+                  },
+                },
+                {
+                  vehicle: {
+                    $arrayElemAt: [
+                      {
+                        $filter: {
+                          input: "$receiptVehicles",
+                          as: "v",
+                          cond: {
+                            $eq: [
+                              { $toString: { $ifNull: ["$$v._id", ""] } },
+                              { $toString: { $ifNull: ["$$r.vehicleId", ""] } },
+                            ],
+                          },
+                        },
+                      },
+                      0,
+                    ],
+                  },
+                },
+              ],
+            },
+          },
+        },
+      },
+    },
+    {
+      $sort: { createdAt: -1 },
+    },
+  ];
+};
+
+export const buildCompanyActiveTripsPipeline = (userId) => {
+  return [
+    {
+      $match: {
+        status: TRIP_STATUS.ACCEPTED,
+        "recipients.assignedBy": new mongoose.Types.ObjectId(userId),
+        // "recipients.status": TRIP_STATUS.ACCEPTED,
+        isTripEnded: false,
+      },
+    },
+    {
+      $lookup: {
+        from: "tripstops",
+        localField: "_id",
+        foreignField: "tripId",
+        as: "stops",
+      },
+    },
+    {
+      $lookup: {
+        from: "users",
+        localField: "recipients.userId",
+        foreignField: "_id",
+        as: "users",
+      },
+    },
+    {
+      // 6a2095e54604abd9538046df
+      $project: {
+        _id: 1,
+        tripRequestId: 1,
+        createdBy: 1,
+        status: 1,
+        tripStopMode: 1,
+        stops: 1,
+        users: {
+          $map: {
+            input: "$users",
+            as: "user",
+            in: {
+              _id: "$$user._id",
+              Name: "$$user.Name",
+              MobileNumber: "$$user.MobileNumber",
+              currentStopIndex: {
+                $let: {
+                  vars: {
+                    recipient: {
+                      $arrayElemAt: [
+                        {
+                          $filter: {
+                            input: "$recipients",
+                            as: "recipient",
+                            cond: {
+                              $eq: ["$$recipient.userId", "$$user._id"],
+                            },
+                          },
+                        },
+                        0,
+                      ],
+                    },
+                  },
+                  in: "$$recipient.currentStopIndex",
+                },
+              },
+            },
+          },
+        },
+      },
+    },
+  ];
+};
+
+export const buildCompanyTripDetailPipeline = (tripId, userId) => {
+  const userObjectId = new mongoose.Types.ObjectId(userId);
+
+  return [
+    { $match: { _id: new mongoose.Types.ObjectId(tripId) } },
+    // stops
+    {
+      $lookup: {
+        from: "tripstops",
+        localField: "_id",
+        foreignField: "tripId",
+        as: "stops",
+      },
+    },
+    { $unwind: "$stops" },
+    //   // just the role, nothing else - this is only for the branch decision below
+    {
+      $lookup: {
+        from: "users",
+        let: { uid: userObjectId },
+        pipeline: [
+          { $match: { $expr: { $eq: ["$_id", "$$uid"] } } },
+          { $project: { role: 1 } },
+        ],
+        as: "requestingUser",
+      },
+    },
+    //   // enrich every recipient - works whether caller is a recipient or not
+    {
+      $lookup: {
+        from: "users",
+        localField: "recipients.userId",
+        foreignField: "_id",
+        as: "receiptUsers",
+        pipeline: [{ $project: { Name: 1 } }],
+      },
+    },
+    {
+      $lookup: {
+        from: "drivers",
+        localField: "recipients.driverId",
+        foreignField: "_id",
+        as: "receiptDrivers",
+        pipeline: [{ $project: { name: 1, image: 1, MobileNumber: 1 } }],
+      },
+    },
+    //   {
+    //     $lookup: {
+    //       from: "vehicles",
+    //       localField: "recipients.vehicleId",
+    //       foreignField: "_id",
+    //       as: "receiptVehicles",
+    //       pipeline: [{ $project: { vehicleNumber: 1, vehicleModel: 1 } }],
+    //     },
+    //   },
+    //   // merge objects
+    {
+      $addFields: {
+        enrichedReceipts: {
+          $map: {
+            input: "$recipients",
+            as: "r",
+            in: {
+              $mergeObjects: [
+                "$$r",
+                {
+                  user: {
+                    $arrayElemAt: [
+                      {
+                        $filter: {
+                          input: "$receiptUsers",
+                          as: "u",
+                          cond: {
+                            $eq: [
+                              { $toString: "$$u._id" },
+                              { $toString: "$$r.userId" },
+                            ],
+                          },
+                        },
+                      },
+                      0,
+                    ],
+                  },
+                },
+                {
+                  driver: {
+                    $arrayElemAt: [
+                      {
+                        $filter: {
+                          input: "$receiptDrivers",
+                          as: "d",
+                          cond: {
+                            $eq: [
+                              { $toString: "$$d._id" },
+                              { $toString: "$$r.driverId" },
+                            ],
+                          },
+                        },
+                      },
+                      0,
+                    ],
+                  },
+                },
+                {
+                  vehicle: {
+                    $arrayElemAt: [
+                      {
+                        $filter: {
+                          input: "$receiptVehicles",
+                          as: "v",
+                          cond: {
+                            $eq: [
+                              { $toString: "$$v._id" },
+                              { $toString: "$$r.vehicleId" },
+                            ],
+                          },
+                        },
+                      },
+                      0,
+                    ],
+                  },
+                },
+              ],
+            },
+          },
+        },
+        requestingUserRole: { $arrayElemAt: ["$requestingUser.role", 0] },
+      },
+    },
+
+    {
+      $addFields: {
+        users: {
+          $cond: [
+            { $eq: ["$requestingUserRole", ROLES.DRIVER] },
+            {
+              $filter: {
+                input: "$enrichedReceipts",
+                as: "r",
+                cond: {
+                  $eq: [{ $toString: "$$r.userId" }, userId.toString()],
+                },
+              },
+            },
+            "$enrichedReceipts",
+          ],
+        },
+      },
+    },
+
+    {
+      $project: {
+        recipients: 0,
+        receiptUsers: 0,
+        receiptDrivers: 0,
+        receiptVehicles: 0,
+        enrichedReceipts: 0,
+        requestingUser: 0,
+        requestingUserRole: 0,
+      },
+    },
+  ];
+};

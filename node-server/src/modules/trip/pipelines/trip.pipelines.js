@@ -1,6 +1,9 @@
 import mongoose from "mongoose";
 
-import { TRIP_STATUS } from "../constants/trip.constants.js";
+import {
+  REQUEST_OPEN_STATUSES,
+  TRIP_STATUS,
+} from "../constants/trip.constants.js";
 import { ROLES } from "../../../shared/constants/role.js";
 
 export const buildTripRequestListPipeline = (userId) => {
@@ -8,6 +11,7 @@ export const buildTripRequestListPipeline = (userId) => {
   return [
     {
       $match: {
+        status: { $in: REQUEST_OPEN_STATUSES },
         $or: [
           {
             recipients: {
@@ -183,7 +187,8 @@ export const buildTripRequestListPipeline = (userId) => {
 
         tripType: 1,
         tripStopMode: 1,
-        tripMode: 1,
+        vehiclesRequired: 1,
+        acceptedCount: 1,
 
         stops: "$tripStops",
 
@@ -365,6 +370,7 @@ export const buildDriverCurrentTripPipeline = (recipientId) => {
     {
       $match: {
         status: TRIP_STATUS.ACCEPTED,
+        isTripEnded: { $ne: true },
       },
     },
 

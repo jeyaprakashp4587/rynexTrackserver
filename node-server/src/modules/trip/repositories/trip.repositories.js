@@ -1,8 +1,11 @@
-import mongoose from "mongoose";
 import tripRequests from "../models/tripRequests.model.js";
 import TripStops from "../models/tripStops.model.js";
 import { companyRoutes } from "../models/company.tripRoute.models.js";
-import { TRIP_STATUS, TRIP_TYPE } from "../constants/trip.constants.js";
+import {
+  MONGO_ERROR_CODES,
+  TRIP_STATUS,
+  TRIP_STOP_STATUS,
+} from "../constants/trip.constants.js";
 
 import {
   buildCompanyActiveTripsPipeline,
@@ -13,6 +16,13 @@ import {
   buildTripRequestDetailPipeline,
   buildTripRequestListPipeline,
 } from "../pipelines/trip.pipelines.js";
+import {
+  buildAssignDriversUpdate,
+  buildClaimAcceptanceFilter,
+  buildClaimAcceptanceUpdate,
+  buildOpenPendingCandidateFilter,
+  buildRejectUpdate,
+} from "../pipelines/trip.updates.js";
 
 import { trip } from "../models/trip.model.js";
 
@@ -39,38 +49,14 @@ export const listTripRequestsByUser = async (userId) => {
 };
 
 export const getTripRequestDetailById = async (tripRequestId, userId) => {
-  const aggregate = tripRequests.aggregate(
+  return tripRequests.aggregate(
     buildTripRequestDetailPipeline(tripRequestId, userId)
   );
-
-  return aggregate;
 };
 
 export const findPendingTripRequestForUser = async (tripRequestId, userId) => {
-  return tripRequests.findOne({
-    _id: tripRequestId,
-    status: TRIP_STATUS.PENDING,
-    "recipients.userId": userId,
-  });
-};
-
-export const assignTripToDriverForRequest = async ({
-  tripRequestId,
-  recipients,
-}) => {
-  console.log("Recipients from service:", recipients, tripRequestId);
-
-  return tripRequests.updateOne(
-    {
-      _id: tripRequestId,
-    },
-    {
-      $set: {
-        status: TRIP_STATUS.WAITING_FOR_DRIVER,
-        recipients,
-        tripType: TRIP_TYPE.INDEPENDENT,
-      },
-    }
+  return tripRequests.findOne(
+    buildOpenPendingCandidateFilter(tripRequestId, userId)
   );
 };
 
@@ -78,53 +64,77 @@ export const findTripRequestById = async ({ tripId }) => {
   return tripRequests.findById(tripId);
 };
 
-export const markTripRequestAccepted = async ({ tripId, userId }) => {
+export const assignDriversToRequest = async ({
+  tripRequestId,
+  ownerUserId,
+  recipients,
+}) => {
   return tripRequests.findOneAndUpdate(
-    {
-      _id: tripId,
-      status: TRIP_STATUS.PENDING,
-    },
-    {
-      $set: {
-        status: TRIP_STATUS.ACCEPTED,
-        "recipients.$[recipient].status": TRIP_STATUS.ACCEPTED,
-      },
-    },
-    {
-      new: true,
-      arrayFilters: [
-        {
-          "recipient.userId": userId,
-        },
-      ],
-    }
+    buildOpenPendingCandidateFilter(tripRequestId, ownerUserId),
+    buildAssignDriversUpdate(ownerUserId, recipients),
+    { new: true }
+  );
+};
+
+export const claimRecipientAcceptance = async ({ tripRequestId, userId }) => {
+  return tripRequests.findOneAndUpdate(
+    buildClaimAcceptanceFilter(tripRequestId, userId),
+    buildClaimAcceptanceUpdate(userId),
+    { new: true }
+  );
+};
+
+export const rejectRecipient = async ({ tripRequestId, userId }) => {
+  return tripRequests.findOneAndUpdate(
+    buildOpenPendingCandidateFilter(tripRequestId, userId),
+    buildRejectUpdate(userId),
+    { new: true }
   );
 };
 
 export const findTripByTripRequestId = async ({ tripRequestId }) => {
-  return trip.findOne({
-    tripRequestId,
-  });
+  return trip.findOne({ tripRequestId });
 };
 
-export const createTripRecord = async ({ payload }) => {
-  return trip.create([payload], {});
+export const upsertTripForRequest = async ({
+  tripRequestId,
+  createdBy,
+  tripStopMode,
+}) => {
+  const attempt = () =>
+    trip.findOneAndUpdate(
+      { tripRequestId },
+      {
+        $setOnInsert: {
+          createdBy,
+          tripStopMode,
+          status: TRIP_STATUS.ACCEPTED,
+          recipients: [],
+          isTripEnded: false,
+        },
+      },
+      { upsert: true, new: true }
+    );
+
+  try {
+    return await attempt();
+  } catch (error) {
+    if (error?.code === MONGO_ERROR_CODES.DUPLICATE_KEY) {
+      return attempt();
+    }
+    throw error;
+  }
 };
 
 export const addRecipientToTripRecord = async ({ tripId, recipientData }) => {
   return trip.updateOne(
     {
       _id: tripId,
-      "recipients.userId": {
-        $ne: recipientData.userId,
-      },
+      "recipients.userId": { $ne: recipientData.userId },
     },
     {
-      $push: {
-        recipients: recipientData,
-      },
-    },
-    { new: true }
+      $push: { recipients: recipientData },
+    }
   );
 };
 
@@ -136,18 +146,17 @@ export const linkTripStopsToRecipient = async ({
   return TripStops.updateOne(
     {
       tripRequestId,
+      "stops.recipientsMeta.recipientId": { $ne: recipientId },
     },
     {
-      $set: {
-        tripId,
-      },
+      $set: { tripId },
       $push: {
         "stops.$[].recipientsMeta": {
           recipientId,
+          status: TRIP_STOP_STATUS.PENDING,
         },
       },
-    },
-    { new: true }
+    }
   );
 };
 
@@ -159,42 +168,83 @@ export const findTripStopsByRecipient = async (tripId, recipientId) => {
   return TripStops.aggregate(buildRecipientStopsPipeline(tripId, recipientId));
 };
 
-export const findRecipientIdForTripAndUser = async (tripId, userId) => {
-  const tripData = await trip.findOne(
-    {
-      _id: tripId,
-      recipients: {
-        $elemMatch: { userId },
-      },
-    },
-    {
-      "recipients.$": 1,
-    }
-  );
+export const findRecipientIdForTripAndUser = async (
+  tripId,
+  userId,
+  { status, activeOnly = false } = {}
+) => {
+  const elemMatch = { userId };
+
+  if (status) {
+    elemMatch.status = status;
+  }
+
+  const filter = { _id: tripId, recipients: { $elemMatch: elemMatch } };
+
+  if (activeOnly) {
+    filter.isTripEnded = { $ne: true };
+  }
+
+  const tripData = await trip.findOne(filter, { "recipients.$": 1 });
 
   return tripData?.recipients?.[0]?._id || null;
 };
 
-export const updateRecipientStopStatus = async (
+export const updateRecipientStopStatus = async ({
   tripId,
   stopSequence,
-  proofPhotos,
   recipientId,
-  status
-) => {
+  status,
+  proofPhotos,
+}) => {
+  const now = new Date();
+  const set = {
+    "stops.$[stop].recipientsMeta.$[meta].status": status,
+  };
+
+  if (proofPhotos) {
+    set["stops.$[stop].recipientsMeta.$[meta].proofPhotos"] = proofPhotos;
+  }
+
+  if (status === TRIP_STOP_STATUS.ARRIVED) {
+    set["stops.$[stop].recipientsMeta.$[meta].arrivedAt"] = now;
+  } else if (status !== TRIP_STOP_STATUS.PENDING) {
+    set["stops.$[stop].recipientsMeta.$[meta].completedAt"] = now;
+  }
+
   return TripStops.updateOne(
     {
       tripId,
-      "stops.sequence": stopSequence,
-      "stops.recipientsMeta.recipientId": recipientId,
-    },
-    {
-      $set: {
-        "stops.$.proofPhotos": proofPhotos,
-        "stops.$.status": status,
+      stops: {
+        $elemMatch: {
+          sequence: stopSequence,
+          "recipientsMeta.recipientId": recipientId,
+        },
       },
     },
-    { new: true }
+    { $set: set },
+    {
+      arrayFilters: [
+        { "stop.sequence": stopSequence },
+        { "meta.recipientId": recipientId },
+      ],
+    }
+  );
+};
+
+export const advanceRecipientStopIndex = async ({
+  tripId,
+  recipientId,
+  stopSequence,
+}) => {
+  return trip.updateOne(
+    {
+      _id: tripId,
+      recipients: {
+        $elemMatch: { _id: recipientId, currentStopIndex: stopSequence },
+      },
+    },
+    { $set: { "recipients.$.currentStopIndex": stopSequence + 1 } }
   );
 };
 
@@ -208,10 +258,7 @@ export const listCompanyRoutesByUser = async (userId) => {
 
 export const getCompanyTripDetailsById = async (tripId, userId) => {
   try {
-    const tripdata = await trip.aggregate(
-      buildCompanyTripDetailPipeline(tripId, userId)
-    );
-    return tripdata;
+    return await trip.aggregate(buildCompanyTripDetailPipeline(tripId, userId));
   } catch (error) {
     console.error("getCompanyTripDetailsById error:", error);
     throw error;

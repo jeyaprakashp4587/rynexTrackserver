@@ -1,6 +1,8 @@
 import { TRIP_STATUS } from "../constants/trip.constants.js";
 
 export const formatRecipients = (recipients, assignedBy) => {
+  const assignedAt = new Date();
+
   return recipients.map((recipient) => ({
     userId: recipient.userId,
     driverId: recipient.driverId,
@@ -8,6 +10,6 @@ export const formatRecipients = (recipients, assignedBy) => {
     driverUserId: recipient.driverUserId,
     assignedBy,
     status: TRIP_STATUS.PENDING,
-    assignedAt: new Date(),
+    assignedAt,
   }));
 };
