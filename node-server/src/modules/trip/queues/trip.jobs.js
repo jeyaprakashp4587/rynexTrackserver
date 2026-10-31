@@ -1,5 +1,5 @@
 import { tripQueue } from "./trip.queue.js";
-import { TRIP_QUEUE } from "../constants/trip.constants.js";
+import { TRIP_QUEUE } from "../constants/shared/trip.constants.js";
 
 export const addTripLocationJob = async (data) => {
   await tripQueue.add(

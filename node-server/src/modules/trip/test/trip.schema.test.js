@@ -4,20 +4,20 @@ import mongoose from "mongoose";
 
 const base = "./harness/src/modules/trip";
 
-const { default: TripRequests } = await import(`${base}/models/tripRequests.model.js`);
-const { trip: Trip } = await import(`${base}/models/trip.model.js`);
-const constants = await import(`${base}/constants/trip.constants.js`);
-const { normalizeRecipients } = await import(`${base}/utils/normalizeRecipients.js`);
-const { toObjectId } = await import(`${base}/utils/objectId.js`);
-const pipelines = await import(`${base}/pipelines/trip.pipelines.js`);
-const updates = await import(`${base}/pipelines/trip.updates.js`);
-const { TRIP_ERRORS } = await import(`${base}/constants/trip.messages.js`);
-const { formatTripStop } = await import(`${base}/utils/formatTripStop.js`);
-const { parseStopProgress } = await import(`${base}/utils/parseStopProgress.js`);
-const { parseVehiclesRequired } = await import(`${base}/utils/parseVehiclesRequired.js`);
-const { buildTripAssignment } = await import(`${base}/utils/buildTripAssignment.js`);
-const { findRecipientByUserId } = await import(`${base}/utils/findRecipient.js`);
-const { default: TripStops } = await import(`${base}/models/tripStops.model.js`);
+const { default: TripRequests } = await import(`${base}/models/generic/tripRequests.model.js`);
+const { trip: Trip } = await import(`${base}/models/generic/trip.model.js`);
+const constants = await import(`${base}/constants/shared/trip.constants.js`);
+const { normalizeRecipients } = await import(`${base}/utils/generic/normalizeRecipients.js`);
+const { toObjectId } = await import(`${base}/utils/shared/objectId.js`);
+const pipelines = await import(`${base}/pipelines/generic/trip.pipelines.js`);
+const updates = await import(`${base}/pipelines/generic/trip.updates.js`);
+const { TRIP_ERRORS } = await import(`${base}/constants/generic/trip.messages.js`);
+const { formatTripStop } = await import(`${base}/utils/shared/formatTripStop.js`);
+const { parseStopProgress } = await import(`${base}/utils/shared/parseStopProgress.js`);
+const { parseVehiclesRequired } = await import(`${base}/utils/generic/parseVehiclesRequired.js`);
+const { buildTripAssignment } = await import(`${base}/utils/generic/buildTripAssignment.js`);
+const { findRecipientByUserId } = await import(`${base}/utils/generic/findRecipient.js`);
+const { default: TripStops } = await import(`${base}/models/generic/tripStops.model.js`);
 
 const id = () => new mongoose.Types.ObjectId();
 

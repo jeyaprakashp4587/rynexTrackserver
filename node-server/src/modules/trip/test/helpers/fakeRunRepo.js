@@ -34,10 +34,10 @@ export const createFakeRunRepo = () => {
     findDriverCompanyRoutes: async () => [],
     findCompanyRouteById: async (routeId) => structuredClone(db.routes.find((r) => r._id === ids(routeId))) ?? null,
     findRouteTemplateStops: async (routeId) => structuredClone(db.templates.find((t) => t.companyTripId === ids(routeId))) ?? null,
-    findRunTripById: async (tripId) => structuredClone(db.trips.find((t) => t._id === ids(tripId) && t.companyRouteId)) ?? null,
-    findRunTripByRunId: async ({ routeId, runId }) => structuredClone(db.trips.find((t) => t.companyRouteId === ids(routeId) && t.runId === runId)) ?? null,
-    findOpenRunTripByDriver: async (userId) => structuredClone(openTrips().find((t) => t.activeDriverUserId === ids(userId))) ?? null,
-    createRunTrip: async (payload) => {
+    findRunById: async (tripId) => structuredClone(db.trips.find((t) => t._id === ids(tripId) && t.companyRouteId)) ?? null,
+    findRunByRunId: async ({ routeId, runId }) => structuredClone(db.trips.find((t) => t.companyRouteId === ids(routeId) && t.runId === runId)) ?? null,
+    findOpenRunByDriver: async (userId) => structuredClone(openTrips().find((t) => t.activeDriverUserId === ids(userId))) ?? null,
+    createRun: async (payload) => {
       const doc = toPlain(payload);
       if (doc.runId && db.trips.some((t) => t.companyRouteId === doc.companyRouteId && t.runId === doc.runId)) throw duplicate({ companyRouteId: 1, runId: 1 });
       assertUnique(doc);
@@ -69,7 +69,7 @@ export const createFakeRunRepo = () => {
       doc.stops.push(...toPlain(stops));
       return structuredClone(doc);
     },
-    updateRunTrip: async ({ filter, update }) => {
+    updateRun: async ({ filter, update }) => {
       hooks.beforeUpdate?.(db);
       const query = new Query(withoutTypeCheck(toPlain(filter)));
       const index = db.trips.findIndex((t) => query.test(t));

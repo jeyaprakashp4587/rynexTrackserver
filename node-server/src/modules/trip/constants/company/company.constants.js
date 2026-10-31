@@ -1,0 +1,27 @@
+import { TRIP_STATUS } from "../shared/trip.constants.js";
+
+export const COMPANY_RUN = {
+  HANDOVER_CANCEL_REASON: "DRIVER_HANDOVER",
+  MAX_RUN_ID_LENGTH: 64,
+  MAX_END_REASON_LENGTH: 200,
+  MAX_EXTRA_STOPS: 20,
+  RUN_ID_PATTERN: /^[A-Za-z0-9_-]+$/,
+};
+
+export const COMPANY_ROUTE_INACTIVE_STATUSES = [
+  TRIP_STATUS.REJECTED,
+  TRIP_STATUS.CANCELLED,
+  TRIP_STATUS.EXPIRED,
+];
+
+export const STANDING_ASSIGNMENT_INACTIVE_STATUSES = [
+  TRIP_STATUS.REJECTED,
+  TRIP_STATUS.CANCELLED,
+  TRIP_STATUS.EXPIRED,
+];
+
+export const COMPANY_COLLECTIONS = {
+  ROUTE_STOPS: "companyroutestops",
+  RUNS: "companyruns",
+  RUN_STOPS: "companyrunstops",
+};

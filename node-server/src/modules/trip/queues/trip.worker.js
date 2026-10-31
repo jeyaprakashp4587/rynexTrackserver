@@ -1,7 +1,7 @@
 import { Worker } from "bullmq";
 
 import { redis } from "../../../config/redis.config.js";
-import { LOG_MESSAGES, TRIP_QUEUE } from "../constants/trip.constants.js";
+import { LOG_MESSAGES, TRIP_QUEUE } from "../constants/shared/trip.constants.js";
 
 const tripWorker = new Worker(
   TRIP_QUEUE.NAME,

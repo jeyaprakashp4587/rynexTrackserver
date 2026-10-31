@@ -5,18 +5,20 @@ import mongoose from "mongoose";
 const base = "./harness/src/modules/trip";
 const id = () => new mongoose.Types.ObjectId();
 
-const constants = await import(`${base}/constants/trip.constants.js`);
-const { COMPANY_ERRORS, COMPANY_RESPONSES, COMPANY_FAILURES } = await import(`${base}/constants/company.messages.js`);
-const parsers = await import(`${base}/utils/companyRun.parsers.js`);
-const builders = await import(`${base}/utils/companyRun.builders.js`);
-const route = await import(`${base}/utils/companyRoute.js`);
-const { toRunConflictError, isActiveRunConflict } = await import(`${base}/utils/companyRun.errors.js`);
-const { trip: Trip } = await import(`${base}/models/trip.model.js`);
-const { default: TripStops } = await import(`${base}/models/tripStops.model.js`);
-const { companyRoutes } = await import(`${base}/models/company.tripRoute.models.js`);
+const constants = await import(`${base}/constants/shared/trip.constants.js`);
+const { COMPANY_ERRORS, COMPANY_RESPONSES, COMPANY_FAILURES } = await import(`${base}/constants/company/company.messages.js`);
+const parsers = await import(`${base}/utils/company/companyRun.parsers.js`);
+const builders = await import(`${base}/utils/company/companyRun.builders.js`);
+const route = await import(`${base}/utils/company/companyRoute.js`);
+const { toRunConflictError, isActiveRunConflict } = await import(`${base}/utils/company/companyRun.errors.js`);
+const { trip: Trip } = await import(`${base}/models/generic/trip.model.js`);
+const { companyRun: Run } = await import(`${base}/models/company/companyRun.model.js`);
+const { default: TripStops } = await import(`${base}/models/generic/tripStops.model.js`);
+const { companyRoutes } = await import(`${base}/models/company/companyRoute.model.js`);
 const events = await import(`${base}/events/trip.events.js`);
+const companyEvents = await import(`${base}/events/company.events.js`);
 const publisher = await import(`${base}/events/trip.publisher.js`);
-const location = await import(`${base}/utils/clearLocation.js`);
+const location = await import(`${base}/utils/shared/clearLocation.js`);
 const kafka = await import("./harness/src/kafka/index.js");
 const redisStub = await import("./harness/src/config/redis.config.js");
 const { TRIP_STATUS } = constants;
@@ -103,8 +105,6 @@ test("active assignment, ownership and handover helpers", () => {
   assert.ok(!route.hasAssignment(tripDoc, id()));
   assert.ok(route.wasHandedOverTo(tripDoc, second));
   assert.ok(!route.wasHandedOverTo(tripDoc, first));
-  assert.ok(route.isRunTrip({ companyRouteId: id() }));
-  assert.ok(!route.isRunTrip({}));
 });
 
 test("run builders produce a started run with the driver's accepted assignment", () => {
@@ -178,8 +178,8 @@ test("duplicate key errors map to specific conflict messages", () => {
   assert.equal(toRunConflictError(plain), plain);
 });
 
-test("trip schema enforces open-run uniqueness and idempotency via partial indexes", () => {
-  const indexes = Trip.schema.indexes();
+test("company run schema enforces open-run uniqueness and idempotency via partial indexes", () => {
+  const indexes = Run.schema.indexes();
   const find = (key) => indexes.find(([fields]) => Object.keys(fields).join() === key);
   const driverIndex = find("activeDriverUserId");
   const vehicleIndex = find("activeVehicleId");
@@ -191,9 +191,16 @@ test("trip schema enforces open-run uniqueness and idempotency via partial index
   assert.equal(driverIndex[1].partialFilterExpression.isTripEnded, false);
   assert.equal(vehicleIndex[1].partialFilterExpression.isTripEnded, false);
   assert.deepEqual(runIndex[1].partialFilterExpression, { runId: { $type: "string" } });
-  assert.equal(Trip.schema.path("runId").instance, "String");
-  assert.equal(Trip.schema.path("activeDriverUserId").instance, "ObjectId");
-  assert.equal(Trip.schema.path("activeVehicleId").instance, "ObjectId");
+  assert.equal(Run.schema.path("runId").instance, "String");
+  assert.equal(Run.schema.path("activeDriverUserId").instance, "ObjectId");
+  assert.equal(Run.schema.path("activeVehicleId").instance, "ObjectId");
+});
+
+test("generic trip and trip stops schemas carry no company fields", () => {
+  for (const field of ["companyRouteId", "runId", "activeDriverUserId", "activeVehicleId"]) {
+    assert.equal(Trip.schema.path(field), undefined, field);
+  }
+  assert.equal(TripStops.schema.path("companyTripId"), undefined);
 });
 
 test("tripStops has a unique partial tripId index and company routes are typed", () => {
@@ -224,11 +231,11 @@ test("run events keep the envelope and expose the documented payloads", () => {
   const startedAt = new Date("2026-01-01T00:00:00Z");
   const assignment = { _id: id(), userId: id(), driverId: id(), vehicleId: id() };
   const tripDoc = { _id: id(), companyRouteId: id(), startedAt, activeDriverUserId: assignment.userId, activeVehicleId: assignment.vehicleId, status: "COMPLETED", completedAt: startedAt };
-  assert.equal(events.buildRunStartedData({ trip: tripDoc, assignment }).startedAt, startedAt.toISOString());
-  assert.equal(events.buildRunEndedData({ trip: tripDoc, reason: "r" }).reason, "r");
-  const handover = events.buildRunHandoverData({ trip: tripDoc, previous: { userId: id() }, assignment: { ...assignment, currentStopIndex: 2 }, actorId: id() });
+  assert.equal(companyEvents.buildRunStartedData({ trip: tripDoc, assignment }).startedAt, startedAt.toISOString());
+  assert.equal(companyEvents.buildRunEndedData({ trip: tripDoc, reason: "r" }).reason, "r");
+  const handover = companyEvents.buildRunHandoverData({ trip: tripDoc, previous: { userId: id() }, assignment: { ...assignment, currentStopIndex: 2 }, actorId: id() });
   assert.equal(handover.currentStopIndex, 2);
-  const added = events.buildRunStopsAddedData({ trip: tripDoc, stops: [{ sequence: 4, locationName: "Z", stopType: "DROP", coords: {} }], actorId: id() });
+  const added = companyEvents.buildRunStopsAddedData({ trip: tripDoc, stops: [{ sequence: 4, locationName: "Z", stopType: "DROP", coords: {} }], actorId: id() });
   assert.deepEqual(added.stops, [{ sequence: 4, locationName: "Z", stopType: "DROP" }]);
 });
 
@@ -265,7 +272,8 @@ test("location cleanup deletes trip and driver keys and never throws", async () 
 
 test("router registers driver routes before the :tripId catch-all and exposes the run endpoints", async () => {
   const { default: router } = await import(`${base}/trip.route.js`);
-  const layers = router.stack.filter((layer) => layer.route).map((layer) => ({
+  const flatten = (stack) => stack.flatMap((layer) => layer.route ? [layer] : layer.handle?.stack ? flatten(layer.handle.stack) : []);
+  const layers = flatten(router.stack).map((layer) => ({
     path: layer.route.path,
     methods: Object.keys(layer.route.methods),
   }));

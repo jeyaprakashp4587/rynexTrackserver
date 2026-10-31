@@ -6,12 +6,12 @@ import { MongoMemoryReplSet } from "mongodb-memory-server";
 const base = "./harness/src/modules/trip";
 const { DB1 } = await import("./harness/src/config/db.js");
 const kafka = await import("./harness/src/kafka/index.js");
-const service = await import(`${base}/services/trip.services.js`);
-const { default: TripRequests } = await import(`${base}/models/tripRequests.model.js`);
-const { trip: Trip } = await import(`${base}/models/trip.model.js`);
-const { default: TripStops } = await import(`${base}/models/tripStops.model.js`);
-const { TRIP_EVENT_TYPES, TRIP_STATUS, TRIP_STOP_STATUS } = await import(`${base}/constants/trip.constants.js`);
-const { TRIP_ERRORS, TRIP_RESPONSES } = await import(`${base}/constants/trip.messages.js`);
+const service = await import(`${base}/services/generic/trip.services.js`);
+const { default: TripRequests } = await import(`${base}/models/generic/tripRequests.model.js`);
+const { trip: Trip } = await import(`${base}/models/generic/trip.model.js`);
+const { default: TripStops } = await import(`${base}/models/generic/tripStops.model.js`);
+const { TRIP_EVENT_TYPES, TRIP_STATUS, TRIP_STOP_STATUS } = await import(`${base}/constants/shared/trip.constants.js`);
+const { TRIP_ERRORS, TRIP_RESPONSES } = await import(`${base}/constants/generic/trip.messages.js`);
 
 let replSet;
 const id = () => new mongoose.Types.ObjectId();
@@ -155,7 +155,7 @@ test("retrying an accept does not duplicate trips, assignments or stop metadata"
 test("a crashed accept (claimed but no trip yet) is completed by retrying", async () => {
   const driver = id();
   const request = await createBooking({ candidates: [driver] });
-  const repo = await import(`${base}/repositories/trip.repositories.js`);
+  const repo = await import(`${base}/repositories/generic/trip.repositories.js`);
   await repo.claimRecipientAcceptance({ tripRequestId: request._id, userId: driver });
   assert.equal(await Trip.countDocuments({}), 0);
   const result = await service.acceptTripRequestForDriver({ userId: driver, tripId: request._id.toString() });

@@ -14,7 +14,7 @@ import {
   buildTripUpdated,
 } from "./trip.events.js";
 
-import { LOG_MESSAGES } from "../constants/trip.constants.js";
+import { LOG_MESSAGES } from "../constants/shared/trip.constants.js";
 
 const publish = async (message) => {
   try {

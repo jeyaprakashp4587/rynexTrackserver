@@ -2,39 +2,42 @@
 
 Booking trips (request → candidates accept → trip) and company route runs (driver taps Start on a reusable route template).
 
-## Data model
+## Two decoupled sub-domains
 
-| Model | Collection | Role |
+The module has two sub-domains that never import each other. Both share only `constants/shared`, `utils/shared`, `models/shared`, `events/` and `queues/`.
+
+| Sub-domain | Models | Purpose |
 | --- | --- | --- |
-| `TripRequests` | triprequests | Offer. `recipients[]` are candidates who may accept. `vehiclesRequired` / `acceptedCount` cap acceptance. |
-| `Trip` | trips | Confirmed assignments. `recipients[]` are assigned drivers/vehicles (`_id` = recipientId). Company runs also set `companyRouteId`, `runId`. |
-| `TripStops` | tripstops | Route stops plus per-assignment progress in `stops[].recipientsMeta[]`. |
-| `CompanyTripRoutes` | company routes | Reusable template: stops plus standing driver/vehicle assignments. |
+| generic | `TripRequests`, `Trip`, `TripStops` | Booking: request, candidates accept, trip. |
+| company | `CompanyTripRoutes`, `CompanyRouteStops`, `CompanyRun`, `CompanyRunStops` | Reusable route templates and the daily runs drivers start from them. |
 
-Guarantees (enforced by unique partial indexes and atomic conditional updates):
+`Trip`, `TripRequests` and `TripStops` hold no company fields. A run is a `CompanyRun`, its stop snapshot is `CompanyRunStops`, and a route's template stops are `CompanyRouteStops`.
 
-- One Trip per request (`tripRequestId`).
+Guarantees (unique partial indexes plus atomic conditional updates):
+
+- One Trip per request (`Trip.tripRequestId`).
 - One run per `(companyRouteId, runId)` (safe client retries).
-- One open trip per driver (`activeDriverUserId`) and per vehicle (`activeVehicleId`).
+- One open run per driver (`activeDriverUserId`) and per vehicle (`activeVehicleId`).
 - Accepting beyond `vehiclesRequired` is rejected; once full, remaining pending candidates become `EXPIRED`.
 
 ## Folder layout
 
+Every layer folder has the same split: `generic/`, `company/`, and where needed `shared/`.
+
 ```
-constants/     status groups, limits, redis keys, queue names, log and response messages
-models/        mongoose schemas and indexes only
-repositories/  database access only, no business rules
-pipelines/     aggregation pipelines and pipeline-style updates
-services/      orchestration: validate, call repositories, publish events
-controller/    HTTP layer: call one service, shape the response
-events/        event payload builders, kafka publisher, handler
+constants/     shared/ generic/ company/
+models/        shared/ (assignment + stop schemas)  generic/  company/
+repositories/  generic/  company/
+pipelines/     generic/  company/
+services/      generic/  company/
+controller/    generic/  company/
+routes/        generic.route.js  company.route.js   (trip.route.js mounts both)
+utils/         shared/  generic/  company/
+events/        trip.events.js company.events.js trip.publisher.js trip.handler.js
 queues/        bullmq queue, jobs, worker
-utils/         every helper (see below)
-scripts/       migrate-trip-refactor.js (dry run by default, --apply to write)
-test/          node:test suites
 ```
 
-Rule: services, controllers, repositories and pipelines contain no local helper functions. Anything reusable lives in `utils/`; any fixed value lives in `constants/`.
+Rule: services, controllers, repositories and pipelines contain no local helper functions. Reusable logic lives in `utils/`; fixed values live in `constants/`.
 
 ## Flows
 
@@ -68,6 +71,7 @@ Company runs never create TripRequests.
 | POST/GET | `/company/routes` | createCompanyTrip, listCompanyRoutes |
 | GET | `/company/active`, `/company/:tripId` | listCompanyActiveTrips, getCompanyTripDetails |
 | GET | `/company/driver/routes` | listDriverCompanyRoutes |
+| GET | `/company/driver/current` | getDriverCurrentCompanyRun (driver's open run with own stops, `null` when none) |
 | POST | `/company/routes/:routeId/runs` | startCompanyRun |
 | POST | `/company/trips/:tripId/{end,handover,stops,stop-progress}` | endCompanyRun, handoverCompanyRun, addCompanyRunStops, updateCompanyRunStopProgress |
 
@@ -84,26 +88,18 @@ Envelope: `{ event, data, timestamp }`. Publishing failures are logged and never
 
 ## Utils reference
 
-| File | Exports |
+| Folder | Files |
 | --- | --- |
-| `objectId.js` | `isObjectIdLike`, `toObjectId`, `toOptionalObjectId`, `newObjectId` |
-| `requireIds.js` | `requireUserId`, `requireTripId` |
-| `handleRequest.js` | `handleRequest`, `handleAction`, `withData` (controller wrappers) |
-| `mongoErrors.js` | `isDuplicateKeyError`, `duplicateKeyFields` |
-| `normalizeRecipients.js`, `parseVehiclesRequired.js`, `parseStopProgress.js` | request input parsing for bookings |
-| `formatRecipients.js`, `formatTripStop.js`, `buildTripAssignment.js`, `findRecipient.js` | booking shaping and lookup |
-| `claimCandidate.js` | atomic candidate claim with idempotent replay |
-| `companyRoute.js` | assignment predicates: `sameId`, `findStandingAssignment`, `findActiveAssignment`, `isTripOwner`, `hasAssignment`, `hasHandedOver`, `wasHandedOverTo`, `isRunTrip` |
-| `companyRun.parsers.js` | `parseStartRun`, `parseEndRun`, `parseHandover`, `parseExtraStops` |
-| `companyRun.builders.js` | run, assignment, stop and summary builders; `buildStartResult`, `hasFinishedAllStops`, `nextStopSequence` |
-| `companyRun.helpers.js` | `findOpenRunTrip`, `findReplayedRun`, `healRunStops`, `recoverStartConflict` |
-| `companyRun.errors.js` | `isActiveRunConflict`, `toRunConflictError` |
-| `pipelineExpressions.js` | `mapRecipientsWhere`, `mapAssignment`, `isPendingFor` |
-| `locationKeys.js`, `clearLocation.js` | redis key builders and best-effort clearing |
+| `utils/shared` | `objectId`, `requireIds`, `mongoErrors`, `handleRequest` (`handleRequest`, `handleAction`, `withData`), `pipelineExpressions`, `formatRecipients`, `formatTripStop`, `parseStopProgress`, `clearLocation`, `locationKeys` |
+| `utils/generic` | `normalizeRecipients`, `parseVehiclesRequired`, `buildTripAssignment`, `findRecipient`, `claimCandidate` |
+| `utils/company` | `companyRoute` (assignment predicates), `companyRun.parsers`, `companyRun.builders`, `companyRun.helpers`, `companyRun.errors` |
 
-## Migration
+## Migrations
 
-`node scripts/migrate-trip-refactor.js` reports duplicates, accepted requests without a trip, invalid statuses and string ids. Add `--apply` to backfill `vehiclesRequired`/`acceptedCount` and create the unique index. It is idempotent and non-destructive. There is no migration for company routes yet.
+- `scripts/migrate-trip-refactor.js`: reports duplicates, accepted requests without a trip, invalid statuses and string ids. `--apply` backfills `vehiclesRequired`/`acceptedCount`.
+- `scripts/migrate-company-split.js`: copies legacy company data into the new collections (route stop templates, runs, run stops, same `_id`s). Dry run by default, `--apply` to write, safe to run twice. It never deletes the legacy documents.
+
+Both need `MONGO_URI`.
 
 ## Tests
 

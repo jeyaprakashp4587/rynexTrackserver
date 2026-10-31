@@ -4,7 +4,7 @@ import {
   DEFAULT_VEHICLES_REQUIRED,
   TRIP_COLLECTIONS,
   TRIP_STATUS,
-} from "../src/modules/trip/constants/trip.constants.js";
+} from "../src/modules/trip/constants/shared/trip.constants.js";
 
 const APPLY = process.argv.includes("--apply");
 const uri = process.env.MONGO_URI;

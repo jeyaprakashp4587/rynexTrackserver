@@ -7,14 +7,18 @@ const base = "./harness/src/modules/trip";
 const { DB1 } = await import("./harness/src/config/db.js");
 const kafka = await import("./harness/src/kafka/index.js");
 const redisStub = await import("./harness/src/config/redis.config.js");
-const tripService = await import(`${base}/services/trip.services.js`);
-const runService = await import(`${base}/services/company.run.services.js`);
-const { default: TripRequests } = await import(`${base}/models/tripRequests.model.js`);
-const { trip: Trip } = await import(`${base}/models/trip.model.js`);
-const { default: TripStops } = await import(`${base}/models/tripStops.model.js`);
-const { companyRoutes } = await import(`${base}/models/company.tripRoute.models.js`);
-const { TRIP_EVENT_TYPES: E, TRIP_STATUS: S, TRIP_STOP_STATUS } = await import(`${base}/constants/trip.constants.js`);
-const { COMPANY_ERRORS } = await import(`${base}/constants/company.messages.js`);
+const tripService = await import(`${base}/services/generic/trip.services.js`);
+const companyRouteService = await import(`${base}/services/company/company.route.services.js`);
+const runService = await import(`${base}/services/company/company.run.services.js`);
+const { default: TripRequests } = await import(`${base}/models/generic/tripRequests.model.js`);
+const { trip: Trip } = await import(`${base}/models/generic/trip.model.js`);
+const { companyRun: Run } = await import(`${base}/models/company/companyRun.model.js`);
+const { companyRunStops: RunStops } = await import(`${base}/models/company/companyRunStops.model.js`);
+const { companyRouteStops: RouteStops } = await import(`${base}/models/company/companyRouteStops.model.js`);
+const { default: TripStops } = await import(`${base}/models/generic/tripStops.model.js`);
+const { companyRoutes } = await import(`${base}/models/company/companyRoute.model.js`);
+const { TRIP_EVENT_TYPES: E, TRIP_STATUS: S, TRIP_STOP_STATUS } = await import(`${base}/constants/shared/trip.constants.js`);
+const { COMPANY_ERRORS } = await import(`${base}/constants/company/company.messages.js`);
 
 let replSet;
 const id = () => new mongoose.Types.ObjectId();
@@ -25,7 +29,7 @@ const STOPS = [stop("Depot", "PICKUP", 12.9, 80.2), stop("Terminus", "DROP", 13.
 const eventsOf = (type) => kafka.published.filter(({ message }) => message.event === type);
 
 const createRoute = async ({ owner = id(), drivers, stops = STOPS }) => {
-  const route = await tripService.createCompanyTrip({
+  const route = await companyRouteService.createCompanyTrip({
     userId: owner,
     body: {
       data: {
@@ -59,12 +63,12 @@ const setup = async (extra = {}) => {
   return { owner, routeId, d1, d2, v1, v2 };
 };
 
-const stopsOf = async (tripId) => (await TripStops.findOne({ tripId })).stops;
+const stopsOf = async (tripId) => (await RunStops.findOne({ runId: tripId })).stops;
 
 before(async () => {
   replSet = await MongoMemoryReplSet.create({ replSet: { count: 1 } });
   await DB1.openUri(replSet.getUri());
-  await Promise.all([TripRequests.init(), Trip.init(), TripStops.init(), companyRoutes.init()]);
+  await Promise.all([TripRequests.init(), Trip.init(), TripStops.init(), Run.init(), RunStops.init(), RouteStops.init(), companyRoutes.init()]);
 });
 
 after(async () => {
@@ -73,7 +77,7 @@ after(async () => {
 });
 
 beforeEach(async () => {
-  await Promise.all([TripRequests.deleteMany({}), Trip.deleteMany({}), TripStops.deleteMany({}), companyRoutes.deleteMany({})]);
+  await Promise.all([TripRequests.deleteMany({}), Trip.deleteMany({}), TripStops.deleteMany({}), Run.deleteMany({}), RunStops.deleteMany({}), RouteStops.deleteMany({}), companyRoutes.deleteMany({})]);
   kafka.published.length = 0;
   kafka.failNext(0);
   redisStub.deletedKeys.length = 0;
@@ -101,7 +105,7 @@ test("starting a run creates a trip with the driver's accepted assignment and a 
   const { message, trip: result } = await start(d1, routeId, v1, "run-1");
   assert.equal(message, "Trip started successfully");
 
-  const stored = await Trip.findById(result.tripId);
+  const stored = await Run.findById(result.tripId);
   assert.equal(stored.companyRouteId.toString(), routeId.toString());
   assert.equal(stored.tripRequestId, undefined);
   assert.equal(stored.status, S.ACCEPTED);
@@ -125,8 +129,8 @@ test("starting a run creates a trip with the driver's accepted assignment and a 
     assert.equal(s.recipientsMeta[0].recipientId.toString(), stored.recipients[0]._id.toString());
     assert.equal(s.recipientsMeta[0].status, TRIP_STOP_STATUS.PENDING);
   }
-  const template = await TripStops.findOne({ companyTripId: routeId });
-  assert.equal(template.tripId, null);
+  const template = await RouteStops.findOne({ routeId });
+  assert.equal(template.tripId, undefined);
   assert.equal(template.stops.length, 2);
   assert.equal(eventsOf(E.STARTED).length, 1);
 });
@@ -136,8 +140,8 @@ test("retrying a start with the same run id returns the same trip and creates no
   const first = await start(d1, routeId, v1, "run-1");
   const second = await start(d1, routeId, v1, "run-1");
   assert.equal(first.trip.tripId.toString(), second.trip.tripId.toString());
-  assert.equal(await Trip.countDocuments({ companyRouteId: routeId }), 1);
-  assert.equal(await TripStops.countDocuments({ tripId: first.trip.tripId }), 1);
+  assert.equal(await Run.countDocuments({ companyRouteId: routeId }), 1);
+  assert.equal(await RunStops.countDocuments({ runId: first.trip.tripId }), 1);
   assert.equal(eventsOf(E.STARTED).length, 1);
   await assert.rejects(start(d2, routeId, v2, "run-1"), { message: COMPANY_ERRORS.RUN_ID_TAKEN });
 });
@@ -145,11 +149,11 @@ test("retrying a start with the same run id returns the same trip and creates no
 test("a retry heals a start that crashed after creating the trip but before the stops", async () => {
   const { routeId, d1, v1 } = await setup();
   const { trip } = await start(d1, routeId, v1, "run-1");
-  await TripStops.deleteOne({ tripId: trip.tripId });
+  await RunStops.deleteOne({ runId: trip.tripId });
   const retry = await start(d1, routeId, v1, "run-1");
   assert.equal(retry.trip.tripId.toString(), trip.tripId.toString());
   assert.equal((await stopsOf(trip.tripId)).length, 2);
-  assert.equal(await Trip.countDocuments({}), 1);
+  assert.equal(await Run.countDocuments({}), 1);
 });
 
 test("starting is refused for unassigned drivers, wrong vehicles, bad ids and unusable routes", async () => {
@@ -163,9 +167,9 @@ test("starting is refused for unassigned drivers, wrong vehicles, bad ids and un
   await companyRoutes.updateOne({ _id: routeId }, { $set: { status: S.CANCELLED } });
   await assert.rejects(start(d2, routeId, v2), { message: COMPANY_ERRORS.ROUTE_INACTIVE });
   await companyRoutes.updateOne({ _id: routeId }, { $set: { status: S.WAITING_FOR_DRIVER } });
-  await TripStops.deleteMany({ companyTripId: routeId });
+  await RouteStops.deleteMany({ routeId });
   await assert.rejects(start(d1, routeId, v1), { message: COMPANY_ERRORS.ROUTE_STOPS_MISSING });
-  assert.equal(await Trip.countDocuments({}), 0);
+  assert.equal(await Run.countDocuments({}), 0);
 });
 
 test("one running trip per driver and per vehicle, enforced under concurrency", async () => {
@@ -173,9 +177,9 @@ test("one running trip per driver and per vehicle, enforced under concurrency", 
   const sameDriver = await Promise.allSettled([start(d1, routeId, v1, "a"), start(d1, routeId, v1, "b")]);
   assert.equal(sameDriver.filter((r) => r.status === "fulfilled").length, 1);
   assert.equal(sameDriver.find((r) => r.status === "rejected").reason.message, COMPANY_ERRORS.DRIVER_HAS_OPEN_TRIP);
-  assert.equal(await Trip.countDocuments({}), 1);
+  assert.equal(await Run.countDocuments({}), 1);
 
-  await Trip.deleteMany({});
+  await Run.deleteMany({});
   const sharedVehicle = id();
   const [da, db] = [id(), id()];
   const shared = await createRoute({ drivers: [{ userId: da, vehicleId: sharedVehicle }, { userId: db, vehicleId: sharedVehicle }] });
@@ -185,7 +189,7 @@ test("one running trip per driver and per vehicle, enforced under concurrency", 
 
   const other = await createRoute({ drivers: [{ userId: d1, vehicleId: id() }] });
   const otherVehicle = (await companyRoutes.findById(other.routeId)).recipients[0].vehicleId;
-  await Trip.deleteMany({});
+  await Run.deleteMany({});
   await start(d1, routeId, v1);
   await assert.rejects(start(d1, other.routeId, otherVehicle), { message: COMPANY_ERRORS.DRIVER_HAS_OPEN_TRIP });
 });
@@ -195,12 +199,12 @@ test("driver works the stops, canEnd turns true on the last one, ending complete
   const { trip } = await start(d1, routeId, v1);
   assert.equal((await progress(d1, trip.tripId, 1)).trip.canEnd, false);
   assert.equal((await progress(d1, trip.tripId, 2)).trip.canEnd, true);
-  assert.equal((await Trip.findById(trip.tripId)).recipients[0].currentStopIndex, 3);
+  assert.equal((await Run.findById(trip.tripId)).recipients[0].currentStopIndex, 3);
 
   const ended = await end(d1, trip.tripId);
   assert.equal(ended.trip.status, S.COMPLETED);
   assert.equal(ended.trip.isTripEnded, true);
-  const stored = await Trip.findById(trip.tripId);
+  const stored = await Run.findById(trip.tripId);
   assert.equal(stored.status, S.COMPLETED);
   assert.equal(stored.recipients[0].status, S.COMPLETED);
   assert.ok(stored.recipients[0].completedAt);
@@ -211,7 +215,7 @@ test("driver works the stops, canEnd turns true on the last one, ending complete
 
   const next = await start(d1, routeId, v1);
   assert.notEqual(next.trip.tripId.toString(), trip.tripId.toString());
-  assert.equal(await Trip.countDocuments({ companyRouteId: routeId }), 2);
+  assert.equal(await Run.countDocuments({ companyRouteId: routeId }), 2);
 });
 
 test("ending early needs a reason and records a cancelled run; ending twice is harmless", async () => {
@@ -222,14 +226,14 @@ test("ending early needs a reason and records a cancelled run; ending twice is h
   await assert.rejects(end(d2, trip.tripId, "x"), { message: COMPANY_ERRORS.RUN_TRIP_NOT_FOUND });
   const ended = await end(d1, trip.tripId, "$bus breakdown");
   assert.equal(ended.trip.status, S.CANCELLED);
-  const stored = await Trip.findById(trip.tripId);
+  const stored = await Run.findById(trip.tripId);
   assert.equal(stored.recipients[0].status, S.CANCELLED);
   assert.equal(stored.recipients[0].cancelReason, "$bus breakdown");
   assert.equal(stored.isTripEnded, true);
   const again = await end(d1, trip.tripId, "$bus breakdown");
   assert.equal(again.trip.status, S.CANCELLED);
   assert.equal(eventsOf(E.ENDED).length, 1);
-  await assert.rejects(progress(d1, trip.tripId, 2), { message: "Trip not found" });
+  await assert.rejects(progress(d1, trip.tripId, 2), { message: "Running trip not found" });
 });
 
 test("a driver can hand the run to another route driver mid-trip and only the new driver continues from the same stop", async () => {
@@ -239,7 +243,7 @@ test("a driver can hand the run to another route driver mid-trip and only the ne
 
   const result = await handover(d1, trip.tripId, d2);
   assert.equal(result.message, "Trip handed over successfully");
-  const stored = await Trip.findById(trip.tripId);
+  const stored = await Run.findById(trip.tripId);
   assert.equal(stored.activeDriverUserId.toString(), d2.toString());
   assert.equal(stored.activeVehicleId.toString(), v1.toString());
   assert.equal(stored.recipients.length, 2);
@@ -256,15 +260,15 @@ test("a driver can hand the run to another route driver mid-trip and only the ne
   assert.equal(stops[0].recipientsMeta.length, 1);
   assert.equal(stops[1].recipientsMeta.length, 2);
 
-  await assert.rejects(progress(d1, trip.tripId, 2), { message: "Trip not found" });
+  await assert.rejects(progress(d1, trip.tripId, 2), { message: "Running trip not found" });
   await assert.rejects(end(d1, trip.tripId, "x"), { message: COMPANY_ERRORS.NOT_ACTIVE_DRIVER });
-  const current = await tripService.getDriverCurrentTripDetails(d2.toString());
+  const current = await runService.getDriverCurrentRun(d2.toString());
   assert.deepEqual(current.tripStop.stops.map((s) => s.sequence), [2]);
   assert.equal((await progress(d2, trip.tripId, 2)).trip.canEnd, true);
   assert.equal(eventsOf(E.HANDOVER).length, 1);
   assert.ok(redisStub.deletedKeys.includes(`driver_location:${d1}`));
   await assert.rejects(start(d1, routeId, v1), { message: COMPANY_ERRORS.VEHICLE_IN_USE });
-  assert.equal((await Trip.countDocuments({ activeDriverUserId: d1 })), 0);
+  assert.equal((await Run.countDocuments({ activeDriverUserId: d1 })), 0);
 });
 
 test("handover retries are idempotent and invalid handovers are refused without changing the trip", async () => {
@@ -274,19 +278,19 @@ test("handover retries are idempotent and invalid handovers are refused without 
   await assert.rejects(handover(id(), trip.tripId, d2), { message: COMPANY_ERRORS.HANDOVER_NOT_ALLOWED });
   await assert.rejects(handover(d1, trip.tripId, id()), { message: COMPANY_ERRORS.HANDOVER_TARGET_NOT_ON_ROUTE });
   await assert.rejects(handover(d1, id(), d2), { message: COMPANY_ERRORS.RUN_TRIP_NOT_FOUND });
-  assert.equal((await Trip.findById(trip.tripId)).recipients.length, 1);
+  assert.equal((await Run.findById(trip.tripId)).recipients.length, 1);
 
   await start(d2, routeId, v2);
   await assert.rejects(handover(d1, trip.tripId, d2), { message: COMPANY_ERRORS.DRIVER_HAS_OPEN_TRIP });
-  const unchanged = await Trip.findById(trip.tripId);
+  const unchanged = await Run.findById(trip.tripId);
   assert.equal(unchanged.recipients.length, 1);
   assert.equal(unchanged.activeDriverUserId.toString(), d1.toString());
 
-  await Trip.deleteOne({ activeDriverUserId: d2 });
+  await Run.deleteOne({ activeDriverUserId: d2 });
   await handover(d1, trip.tripId, d2);
   const retry = await handover(d1, trip.tripId, d2);
   assert.equal(retry.message, "Trip handed over successfully");
-  assert.equal((await Trip.findById(trip.tripId)).recipients.length, 2);
+  assert.equal((await Run.findById(trip.tripId)).recipients.length, 2);
   await assert.rejects(handover(id(), trip.tripId, d2), { message: COMPANY_ERRORS.HANDOVER_NOT_ALLOWED });
 });
 
@@ -296,7 +300,7 @@ test("the owner can hand a run to any driver, including one who is not on the ro
   const relief = id();
   const reliefDriverId = id();
   await handover(owner, trip.tripId, relief, reliefDriverId);
-  const stored = await Trip.findById(trip.tripId);
+  const stored = await Run.findById(trip.tripId);
   assert.equal(stored.activeDriverUserId.toString(), relief.toString());
   assert.equal(stored.recipients[1].driverId.toString(), reliefDriverId.toString());
   assert.equal(stored.recipients[1].assignedBy.toString(), owner.toString());
@@ -312,11 +316,11 @@ test("the owner adds extra stops to a running trip; they append after the planne
   assert.deepEqual(result.trip.addedSequences, [3, 4]);
   const stops = await stopsOf(trip.tripId);
   assert.deepEqual(stops.map((s) => s.sequence), [1, 2, 3, 4]);
-  const assignmentId = (await Trip.findById(trip.tripId)).recipients[0]._id.toString();
+  const assignmentId = (await Run.findById(trip.tripId)).recipients[0]._id.toString();
   for (const s of stops) {
     assert.deepEqual(s.recipientsMeta.map((m) => m.recipientId.toString()), [assignmentId]);
   }
-  assert.equal((await TripStops.findOne({ companyTripId: routeId })).stops.length, 2);
+  assert.equal((await RouteStops.findOne({ routeId })).stops.length, 2);
   assert.equal(eventsOf(E.STOPS_ADDED).length, 1);
 
   await progress(d1, trip.tripId, 1);
@@ -332,7 +336,7 @@ test("a stop added after the driver finished the planned stops becomes the next 
   await progress(d1, trip.tripId, 1);
   assert.equal((await progress(d1, trip.tripId, 2)).trip.canEnd, true);
   await addStops(owner, trip.tripId, [stop("Past terminus", "DROP", 13.5, 80.9)]);
-  const current = await tripService.getDriverCurrentTripDetails(d1.toString());
+  const current = await runService.getDriverCurrentRun(d1.toString());
   assert.deepEqual(current.tripStop.stops.map((s) => s.sequence), [1, 2, 3]);
   assert.equal((await progress(d1, trip.tripId, 3)).trip.canEnd, true);
 });
@@ -341,7 +345,7 @@ test("extra stops added around a handover reach the new driver", async () => {
   const { owner, routeId, d1, d2, v1 } = await setup();
   const { trip } = await start(d1, routeId, v1);
   await Promise.all([handover(d1, trip.tripId, d2), addStops(owner, trip.tripId, [stop("Extra", "DROP", 13.1, 80.4)])]);
-  const stored = await Trip.findById(trip.tripId);
+  const stored = await Run.findById(trip.tripId);
   const active = stored.recipients.find((r) => r.userId.equals(d2));
   const stops = await stopsOf(trip.tripId);
   assert.deepEqual(stops.map((s) => s.sequence), [1, 2, 3]);
@@ -375,18 +379,18 @@ test("stops cannot be added to an ended run", async () => {
 test("existing owner and driver views keep working for runs", async () => {
   const { owner, routeId, d1, d2, v1 } = await setup();
   const { trip } = await start(d1, routeId, v1);
-  const active = await tripService.listCompanyActiveTrips(owner);
+  const active = await companyRouteService.listCompanyActiveTrips(owner);
   assert.equal(active.length, 1);
   assert.equal(active[0]._id.toString(), trip.tripId.toString());
-  const details = await tripService.getCompanyTripDetails(trip.tripId.toString(), owner);
+  const details = await companyRouteService.getCompanyTripDetails(trip.tripId.toString(), owner);
   assert.equal(details._id.toString(), trip.tripId.toString());
-  const current = await tripService.getDriverCurrentTripDetails(d1.toString());
-  assert.equal(current.trip[0]._id.toString(), trip.tripId.toString());
+  const current = await runService.getDriverCurrentRun(d1.toString());
+  assert.equal(current.trip.tripId.toString(), trip.tripId.toString());
   assert.equal(current.tripStop.stops.length, 2);
   await handover(d1, trip.tripId, d2);
-  assert.equal((await tripService.listCompanyActiveTrips(owner)).length, 1);
+  assert.equal((await companyRouteService.listCompanyActiveTrips(owner)).length, 1);
   await end(d2, trip.tripId, "finished early");
-  assert.equal((await tripService.listCompanyActiveTrips(owner)).length, 0);
+  assert.equal((await companyRouteService.listCompanyActiveTrips(owner)).length, 0);
 });
 
 test("the normal booking flow is unaffected and never produces a company run", async () => {
@@ -397,8 +401,8 @@ test("the normal booking flow is unaffected and never produces a company run", a
   });
   await tripService.acceptTripRequestForDriver({ userId: driver, tripId: request._id.toString() });
   const booked = await Trip.findOne({ tripRequestId: request._id });
-  assert.equal(booked.companyRouteId, undefined);
+  assert.equal(booked.runId, undefined);
   assert.equal(booked.activeDriverUserId, undefined);
   assert.equal(booked.status, S.ACCEPTED);
-  assert.equal(await Trip.countDocuments({ companyRouteId: { $exists: true } }), 0);
+  assert.equal(await Run.countDocuments({}), 0);
 });

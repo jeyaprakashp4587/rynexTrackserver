@@ -4,10 +4,10 @@ import mongoose from "mongoose";
 import { Aggregator, Query } from "mingo";
 
 const base = "./harness/src/modules/trip";
-const requestUpdates = await import(`${base}/pipelines/trip.updates.js`);
-const runUpdates = await import(`${base}/pipelines/company.run.updates.js`);
-const runPipelines = await import(`${base}/pipelines/company.run.pipelines.js`);
-const { TRIP_STATUS: S } = await import(`${base}/constants/trip.constants.js`);
+const requestUpdates = await import(`${base}/pipelines/generic/trip.updates.js`);
+const runUpdates = await import(`${base}/pipelines/company/company.run.updates.js`);
+const runPipelines = await import(`${base}/pipelines/company/company.run.pipelines.js`);
+const { TRIP_STATUS: S } = await import(`${base}/constants/shared/trip.constants.js`);
 
 const apply = (pipeline, doc) => new Aggregator(pipeline).run([structuredClone(doc)])[0];
 const matches = (filter, doc) => new Query(filter).test(doc);
@@ -164,8 +164,8 @@ test("driver route list pipeline is shaped for the app and excludes inactive ass
   assert.deepEqual(match.status, { $nin: ["REJECTED", "CANCELLED", "EXPIRED"] });
   assert.equal(match.$or.length, 2);
   const openTrip = pipeline[6].$lookup;
-  assert.equal(openTrip.from, "trips");
+  assert.equal(openTrip.from, "companyruns");
   assert.ok(openTrip.pipeline[0].$match.$expr.$and.length === 3);
-  assert.equal(pipeline[5].$lookup.foreignField, "companyTripId");
+  assert.equal(pipeline[5].$lookup.foreignField, "routeId");
   assert.ok(pipeline[7].$project.openTrip);
 });
