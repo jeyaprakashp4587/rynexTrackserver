@@ -51,12 +51,19 @@ import {
   sameId,
   wasHandedOverTo,
 } from "../../utils/company/companyRoute.js";
-import { clearDriverLocation, clearTripLocation } from "../../utils/shared/clearLocation.js";
+import {
+  clearDriverLocation,
+  clearTripLocation,
+} from "../../utils/shared/clearLocation.js";
+import { toOptionalObjectId } from "../../utils/shared/objectId.js";
 import { parseStopProgress } from "../../utils/shared/parseStopProgress.js";
 import { requireTripId, requireUserId } from "../../utils/shared/requireIds.js";
 
-export const listDriverRoutes = async (userId) =>
-  runRepo.findDriverCompanyRoutes(requireUserId(userId));
+export const listDriverRoutes = async (userId, vehicleId) =>
+  runRepo.findDriverCompanyRoutes(
+    requireUserId(userId),
+    toOptionalObjectId(vehicleId, "Invalid vehicleId")
+  );
 
 export const startRun = async ({ userId, params, body }) => {
   const driverUserId = requireUserId(userId);
@@ -80,7 +87,11 @@ export const startRun = async ({ userId, params, body }) => {
     throw new Error(COMPANY_ERRORS.ROUTE_INACTIVE);
   }
 
-  const standing = findStandingAssignment(route.recipients, driverUserId, vehicleId);
+  const standing = findStandingAssignment(
+    route.recipients,
+    driverUserId,
+    vehicleId
+  );
 
   if (!standing) {
     throw new Error(COMPANY_ERRORS.NOT_ASSIGNED_TO_ROUTE);
@@ -167,7 +178,9 @@ export const updateStopProgress = async ({ userId, tripId, body }) => {
   return {
     message: COMPANY_RESPONSES.STOP_UPDATED,
     trip: {
-      canEnd: Boolean(active) && hasFinishedAllStops(active, stops?.stops.length ?? 0),
+      canEnd:
+        Boolean(active) &&
+        hasFinishedAllStops(active, stops?.stops.length ?? 0),
     },
   };
 };
@@ -218,7 +231,9 @@ export const endRun = async ({ userId, tripId, body }) => {
   }
 
   await clearTripLocation({ tripId: id, driverUserId });
-  await tripPublisher.publishTripEnded(buildRunEndedData({ trip: ended, reason }));
+  await tripPublisher.publishTripEnded(
+    buildRunEndedData({ trip: ended, reason })
+  );
 
   return {
     message: COMPANY_RESPONSES.RUN_ENDED,
@@ -241,7 +256,8 @@ export const handoverRun = async ({ userId, tripId, body }) => {
   const isOwner = isTripOwner(runTrip, actorId);
   const isActiveDriver = sameId(active.userId, actorId);
   const isRetryByPreviousDriver =
-    hasHandedOver(runTrip, actorId) && sameId(active.userId, target.driverUserId);
+    hasHandedOver(runTrip, actorId) &&
+    sameId(active.userId, target.driverUserId);
 
   if (!isOwner && !isActiveDriver && !isRetryByPreviousDriver) {
     throw new Error(COMPANY_ERRORS.HANDOVER_NOT_ALLOWED);
@@ -318,7 +334,12 @@ export const handoverRun = async ({ userId, tripId, body }) => {
   await clearDriverLocation(active.userId);
 
   await tripPublisher.publishTripHandover(
-    buildRunHandoverData({ trip: updated, previous: active, assignment, actorId })
+    buildRunHandoverData({
+      trip: updated,
+      previous: active,
+      assignment,
+      actorId,
+    })
   );
 
   return {
@@ -344,7 +365,10 @@ export const addExtraStops = async ({ userId, tripId, body }) => {
     throw new Error(COMPANY_ERRORS.RUN_TRIP_NOT_FOUND);
   }
 
-  const stops = buildExtraStops(formattedStops, nextStopSequence(current.stops));
+  const stops = buildExtraStops(
+    formattedStops,
+    nextStopSequence(current.stops)
+  );
 
   const appended = await runRepo.appendRunStops({
     runId: id,
@@ -357,7 +381,8 @@ export const addExtraStops = async ({ userId, tripId, body }) => {
   }
 
   const fresh = await runRepo.findRunById(id);
-  const active = fresh && !fresh.isTripEnded ? findActiveAssignment(fresh) : null;
+  const active =
+    fresh && !fresh.isTripEnded ? findActiveAssignment(fresh) : null;
 
   if (active) {
     await runRepo.addAssignmentMeta({

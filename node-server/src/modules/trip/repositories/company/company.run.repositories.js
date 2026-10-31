@@ -10,8 +10,8 @@ import {
 import { isDuplicateKeyError } from "../../utils/shared/mongoErrors.js";
 import { buildStopMeta } from "../../utils/company/companyRun.builders.js";
 
-export const findDriverCompanyRoutes = async (userId) =>
-  companyRoutes.aggregate(buildDriverCompanyRoutesPipeline(userId));
+export const findDriverCompanyRoutes = async (userId, vehicleId) =>
+  companyRoutes.aggregate(buildDriverCompanyRoutesPipeline(userId, vehicleId));
 
 export const findCompanyRouteById = async (routeId) =>
   companyRoutes.findById(routeId).lean();
@@ -55,11 +55,7 @@ export const ensureRunStops = async ({ runId, stops }) => {
 export const findRunStops = async (runId) =>
   companyRunStops.findOne({ runId }).lean();
 
-export const addAssignmentMeta = async ({
-  runId,
-  recipientId,
-  fromSequence,
-}) =>
+export const addAssignmentMeta = async ({ runId, recipientId, fromSequence }) =>
   companyRunStops.updateOne(
     { runId },
     { $push: { "stops.$[stop].recipientsMeta": buildStopMeta(recipientId) } },

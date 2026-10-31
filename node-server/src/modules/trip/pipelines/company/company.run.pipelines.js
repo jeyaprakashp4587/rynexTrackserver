@@ -5,29 +5,37 @@ import {
   STANDING_ASSIGNMENT_INACTIVE_STATUSES,
 } from "../../constants/company/company.constants.js";
 
-export const buildDriverCompanyRoutesPipeline = (userId) => {
+export const buildDriverCompanyRoutesPipeline = (userId, vehicleId) => {
   const userObjectId = new mongoose.Types.ObjectId(userId);
+  const vehicleObjectId = vehicleId
+    ? new mongoose.Types.ObjectId(vehicleId)
+    : null;
 
   const isMyAssignment = {
     $and: [
       {
         $eq: [{ $ifNull: ["$$r.driverUserId", "$$r.userId"] }, userObjectId],
       },
-      { $not: [{ $in: ["$$r.status", STANDING_ASSIGNMENT_INACTIVE_STATUSES] }] },
+      {
+        $not: [{ $in: ["$$r.status", STANDING_ASSIGNMENT_INACTIVE_STATUSES] }],
+      },
     ],
+  };
+
+  const recipientFilter = {
+    $or: [
+      { driverUserId: userObjectId },
+      { driverUserId: null, userId: userObjectId },
+    ],
+    status: { $nin: STANDING_ASSIGNMENT_INACTIVE_STATUSES },
+    ...(vehicleObjectId ? { vehicleId: vehicleObjectId } : {}),
   };
 
   return [
     {
       $match: {
         recipients: {
-          $elemMatch: {
-            $or: [
-              { driverUserId: userObjectId },
-              { driverUserId: null, userId: userObjectId },
-            ],
-            status: { $nin: STANDING_ASSIGNMENT_INACTIVE_STATUSES },
-          },
+          $elemMatch: recipientFilter,
         },
       },
     },

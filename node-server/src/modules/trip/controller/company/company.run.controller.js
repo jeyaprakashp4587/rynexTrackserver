@@ -8,7 +8,10 @@ import { handleAction, handleRequest } from "../../utils/shared/handleRequest.js
 export const listDriverCompanyRoutes = handleRequest(
   async (req) => ({
     message: COMPANY_RESPONSES.DRIVER_ROUTES_FETCHED,
-    data: await companyRunService.listDriverRoutes(req.userId),
+    data: await companyRunService.listDriverRoutes(
+      req.userId,
+      req.query?.vehicleId
+    ),
   }),
   { failureMessage: COMPANY_FAILURES.DRIVER_ROUTES }
 );

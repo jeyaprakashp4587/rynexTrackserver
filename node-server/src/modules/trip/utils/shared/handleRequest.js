@@ -9,7 +9,7 @@ export const handleRequest =
   async (req, res) => {
     try {
       const { message, data } = await run(req);
-
+      console.log("handleRequest - message:", message, "data:", data);
       return successResponse({
         res,
         statusCode: HTTP_STATUS.OK,
