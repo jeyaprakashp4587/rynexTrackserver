@@ -1,6 +1,7 @@
 import mongoose from "mongoose";
 import { DB1 } from "../../../config/db.js";
 import {
+  BSON_TYPE,
   GEO_POINT_TYPE,
   TRIP_STOP_STATUS,
   TRIP_STOP_TYPE,
@@ -68,7 +69,13 @@ const tripStopSchema = new mongoose.Schema(
   }
 );
 
-tripStopSchema.index({ tripId: 1 });
+tripStopSchema.index(
+  { tripId: 1 },
+  {
+    unique: true,
+    partialFilterExpression: { tripId: { $type: BSON_TYPE.OBJECT_ID } },
+  }
+);
 tripStopSchema.index({ tripRequestId: 1 });
 tripStopSchema.index({ companyTripId: 1 });
 tripStopSchema.index({ "stops.coords": "2dsphere" });

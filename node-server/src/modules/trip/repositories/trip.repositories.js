@@ -72,7 +72,7 @@ export const assignDriversToRequest = async ({
   return tripRequests.findOneAndUpdate(
     buildOpenPendingCandidateFilter(tripRequestId, ownerUserId),
     buildAssignDriversUpdate(ownerUserId, recipients),
-    { new: true }
+    { new: true, updatePipeline: true }
   );
 };
 
@@ -80,7 +80,7 @@ export const claimRecipientAcceptance = async ({ tripRequestId, userId }) => {
   return tripRequests.findOneAndUpdate(
     buildClaimAcceptanceFilter(tripRequestId, userId),
     buildClaimAcceptanceUpdate(userId),
-    { new: true }
+    { new: true, updatePipeline: true }
   );
 };
 
@@ -88,7 +88,7 @@ export const rejectRecipient = async ({ tripRequestId, userId }) => {
   return tripRequests.findOneAndUpdate(
     buildOpenPendingCandidateFilter(tripRequestId, userId),
     buildRejectUpdate(userId),
-    { new: true }
+    { new: true, updatePipeline: true }
   );
 };
 
@@ -260,7 +260,7 @@ export const getCompanyTripDetailsById = async (tripId, userId) => {
   try {
     return await trip.aggregate(buildCompanyTripDetailPipeline(tripId, userId));
   } catch (error) {
-    console.error("getCompanyTripDetailsById error:", error);
+    console.error(LOG_MESSAGES.COMPANY_DETAILS_FAILED, error);
     throw error;
   }
 };

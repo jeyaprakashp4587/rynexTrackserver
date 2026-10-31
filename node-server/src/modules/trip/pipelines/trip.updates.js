@@ -4,28 +4,12 @@ import {
   TRIP_STATUS,
   TRIP_TYPE,
 } from "../constants/trip.constants.js";
+import { isPendingFor, mapRecipientsWhere } from "../utils/pipelineExpressions.js";
 
 const acceptedCount = { $ifNull: ["$acceptedCount", 0] };
 const vehiclesRequired = {
   $ifNull: ["$vehiclesRequired", DEFAULT_VEHICLES_REQUIRED],
 };
-
-const isPendingFor = (userId) => ({
-  $and: [
-    { $eq: ["$$r.userId", userId] },
-    { $eq: ["$$r.status", TRIP_STATUS.PENDING] },
-  ],
-});
-
-const mapRecipients = (cond, patch) => ({
-  $map: {
-    input: "$recipients",
-    as: "r",
-    in: {
-      $cond: [cond, { $mergeObjects: ["$$r", patch] }, "$$r"],
-    },
-  },
-});
 
 const countPending = {
   $size: {
@@ -51,7 +35,7 @@ export const buildClaimAcceptanceFilter = (tripRequestId, userId) => ({
 export const buildClaimAcceptanceUpdate = (userId) => [
   {
     $set: {
-      recipients: mapRecipients(isPendingFor(userId), {
+      recipients: mapRecipientsWhere(isPendingFor(userId), {
         status: TRIP_STATUS.ACCEPTED,
         acceptedAt: "$$NOW",
       }),
@@ -67,7 +51,7 @@ export const buildClaimAcceptanceUpdate = (userId) => [
           "$status",
         ],
       },
-      recipients: mapRecipients(
+      recipients: mapRecipientsWhere(
         {
           $and: [
             { $gte: ["$acceptedCount", vehiclesRequired] },
@@ -83,7 +67,7 @@ export const buildClaimAcceptanceUpdate = (userId) => [
 export const buildRejectUpdate = (userId) => [
   {
     $set: {
-      recipients: mapRecipients(isPendingFor(userId), {
+      recipients: mapRecipientsWhere(isPendingFor(userId), {
         status: TRIP_STATUS.REJECTED,
         rejectedAt: "$$NOW",
       }),

@@ -1,5 +1,5 @@
 import { TOPICS } from "../../../kafka/kafka.config.js";
-import { TRIP_EVENT_TYPES } from "../constants/trip.constants.js";
+import { LOG_MESSAGES, TRIP_EVENT_TYPES } from "../constants/trip.constants.js";
 
 export const TOPIC_TRIP = TOPICS.TRIP;
 export const TOPIC_TRIP_CREATED = TOPIC_TRIP;
@@ -32,6 +32,60 @@ export const buildTripFulfilled = (data) =>
 
 export const buildTripStopUpdated = (data) =>
   buildEvent(TRIP_EVENT_TYPES.STOP_UPDATED, data);
+
+export const buildTripStarted = (data) =>
+  buildEvent(TRIP_EVENT_TYPES.STARTED, data);
+
+export const buildTripHandover = (data) =>
+  buildEvent(TRIP_EVENT_TYPES.HANDOVER, data);
+
+export const buildTripStopsAdded = (data) =>
+  buildEvent(TRIP_EVENT_TYPES.STOPS_ADDED, data);
+
+export const buildTripEnded = (data) =>
+  buildEvent(TRIP_EVENT_TYPES.ENDED, data);
+
+export const buildRunStartedData = ({ trip, assignment }) => ({
+  tripId: trip._id,
+  companyRouteId: trip.companyRouteId,
+  recipientId: assignment._id,
+  driverUserId: assignment.userId,
+  driverId: assignment.driverId,
+  vehicleId: assignment.vehicleId,
+  startedAt: trip.startedAt.toISOString(),
+});
+
+export const buildRunEndedData = ({ trip, reason }) => ({
+  tripId: trip._id,
+  companyRouteId: trip.companyRouteId,
+  driverUserId: trip.activeDriverUserId,
+  vehicleId: trip.activeVehicleId,
+  status: trip.status,
+  reason,
+  completedAt: trip.completedAt?.toISOString(),
+});
+
+export const buildRunHandoverData = ({ trip, previous, assignment, actorId }) => ({
+  tripId: trip._id,
+  companyRouteId: trip.companyRouteId,
+  vehicleId: assignment.vehicleId,
+  fromDriverUserId: previous.userId,
+  toDriverUserId: assignment.userId,
+  recipientId: assignment._id,
+  currentStopIndex: assignment.currentStopIndex,
+  handedOverBy: actorId,
+});
+
+export const buildRunStopsAddedData = ({ trip, stops, actorId }) => ({
+  tripId: trip._id,
+  companyRouteId: trip.companyRouteId,
+  addedBy: actorId,
+  stops: stops.map(({ sequence, locationName, stopType }) => ({
+    sequence,
+    locationName,
+    stopType,
+  })),
+});
 
 export const buildTripAcceptedData = ({
   trip,
@@ -73,7 +127,7 @@ export const handleTripEvent = async (payload) => {
       ? JSON.parse(payload.value)
       : payload?.value || payload;
 
-  console.log("Trip Kafka event received:", parsed);
+  console.log(LOG_MESSAGES.EVENT_RECEIVED, parsed);
   return parsed;
 };
 
@@ -86,4 +140,8 @@ export default {
   buildTripRejected,
   buildTripFulfilled,
   buildTripStopUpdated,
+  buildTripStarted,
+  buildTripHandover,
+  buildTripStopsAdded,
+  buildTripEnded,
 };

@@ -114,4 +114,62 @@ export const TRIP_EVENT_TYPES = {
   REJECTED: "TRIP_REJECTED",
   FULFILLED: "TRIP_FULFILLED",
   STOP_UPDATED: "TRIP_STOP_UPDATED",
+  STARTED: "TRIP_STARTED",
+  HANDOVER: "TRIP_HANDOVER",
+  STOPS_ADDED: "TRIP_STOPS_ADDED",
+  ENDED: "TRIP_ENDED",
+};
+
+export const COMPANY_RUN = {
+  HANDOVER_CANCEL_REASON: "DRIVER_HANDOVER",
+  MAX_RUN_ID_LENGTH: 64,
+  MAX_END_REASON_LENGTH: 200,
+  MAX_EXTRA_STOPS: 20,
+  RUN_ID_PATTERN: /^[A-Za-z0-9_-]+$/,
+};
+
+export const COMPANY_ROUTE_INACTIVE_STATUSES = [
+  TRIP_STATUS.REJECTED,
+  TRIP_STATUS.CANCELLED,
+  TRIP_STATUS.EXPIRED,
+];
+
+export const STANDING_ASSIGNMENT_INACTIVE_STATUSES = [
+  TRIP_STATUS.REJECTED,
+  TRIP_STATUS.CANCELLED,
+  TRIP_STATUS.EXPIRED,
+];
+
+export const HTTP_STATUS = {
+  OK: 200,
+  SERVER_ERROR: 500,
+};
+
+export const BSON_TYPE = {
+  OBJECT_ID: "objectId",
+  STRING: "string",
+};
+
+export const TRIP_FIELDS = {
+  RUN_ID: "runId",
+};
+
+export const TRIP_QUEUE = {
+  NAME: "tripQueue",
+  JOBS: {
+    LOCATION_UPDATE: "TRIP_LOCATION_UPDATE",
+  },
+  JOB_OPTIONS: {
+    attempts: 3,
+    removeOnComplete: true,
+    removeOnFail: false,
+  },
+};
+
+export const LOG_MESSAGES = {
+  LOCATION_CLEAR_FAILED: "Failed to clear trip location keys:",
+  PUBLISH_FAILED: (event) => `Failed to publish ${event} event:`,
+  EVENT_RECEIVED: "Trip Kafka event received:",
+  JOB_COMPLETED: (id) => `Job completed ${id}`,
+  COMPANY_DETAILS_FAILED: "getCompanyTripDetailsById error:",
 };

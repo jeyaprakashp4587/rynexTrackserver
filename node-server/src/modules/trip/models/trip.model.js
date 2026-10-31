@@ -1,6 +1,8 @@
 import mongoose from "mongoose";
 import {
   ASSIGNMENT_STATUSES,
+  BSON_TYPE,
+  COMPANY_RUN,
   DEFAULT_STOP_INDEX,
   TRIP_LIFECYCLE_STATUSES,
   TRIP_MODE,
@@ -45,6 +47,21 @@ const tripSchema = new mongoose.Schema(
       ref: "CompanyTripRoutes",
     },
 
+    runId: {
+      type: String,
+      maxlength: COMPANY_RUN.MAX_RUN_ID_LENGTH,
+    },
+
+    activeDriverUserId: {
+      type: ObjectId,
+      ref: "User",
+    },
+
+    activeVehicleId: {
+      type: ObjectId,
+      ref: "Vehicle",
+    },
+
     tripStopMode: {
       type: String,
       enum: Object.values(TRIP_MODE),
@@ -85,9 +102,37 @@ tripSchema.index(
   { tripRequestId: 1 },
   {
     unique: true,
-    partialFilterExpression: { tripRequestId: { $type: "objectId" } },
+    partialFilterExpression: { tripRequestId: { $type: BSON_TYPE.OBJECT_ID } },
   }
 );
+tripSchema.index(
+  { companyRouteId: 1, runId: 1 },
+  {
+    unique: true,
+    partialFilterExpression: { runId: { $type: BSON_TYPE.STRING } },
+  }
+);
+tripSchema.index(
+  { activeDriverUserId: 1 },
+  {
+    unique: true,
+    partialFilterExpression: {
+      activeDriverUserId: { $type: BSON_TYPE.OBJECT_ID },
+      isTripEnded: false,
+    },
+  }
+);
+tripSchema.index(
+  { activeVehicleId: 1 },
+  {
+    unique: true,
+    partialFilterExpression: {
+      activeVehicleId: { $type: BSON_TYPE.OBJECT_ID },
+      isTripEnded: false,
+    },
+  }
+);
+tripSchema.index({ companyRouteId: 1, startedAt: -1 });
 tripSchema.index({ "recipients.userId": 1, status: 1, isTripEnded: 1 });
 tripSchema.index({ "recipients.assignedBy": 1, status: 1, isTripEnded: 1 });
 

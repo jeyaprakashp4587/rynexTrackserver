@@ -14,50 +14,15 @@ import {
 } from "../events/trip.events.js";
 import * as tripPublisher from "../events/trip.publisher.js";
 import { buildTripAssignment } from "../utils/buildTripAssignment.js";
+import { claimCandidate } from "../utils/claimCandidate.js";
 import { findRecipientByUserId } from "../utils/findRecipient.js";
 import { formatRecipients } from "../utils/formatRecipients.js";
 import { formatTripStop } from "../utils/formatTripStop.js";
 import { normalizeRecipients } from "../utils/normalizeRecipients.js";
 import { newObjectId, toObjectId } from "../utils/objectId.js";
+import { requireTripId, requireUserId } from "../utils/requireIds.js";
 import { parseStopProgress } from "../utils/parseStopProgress.js";
 import { parseVehiclesRequired } from "../utils/parseVehiclesRequired.js";
-
-const requireUserId = (userId) =>
-  toObjectId(userId, TRIP_ERRORS.INVALID_USER_ID);
-
-const requireTripId = (tripId) =>
-  toObjectId(tripId, TRIP_ERRORS.INVALID_TRIP_ID);
-
-const claimCandidate = async ({ tripRequest, requestId, driverUserId }) => {
-  const candidate = findRecipientByUserId(tripRequest.recipients, driverUserId);
-
-  if (!candidate) {
-    throw new Error(TRIP_ERRORS.RECIPIENT_NOT_FOUND);
-  }
-
-  if (candidate.status === TRIP_STATUS.ACCEPTED) {
-    return { request: tripRequest, candidate, claimedNow: false };
-  }
-
-  if (candidate.status !== TRIP_STATUS.PENDING) {
-    throw new Error(TRIP_ERRORS.NO_LONGER_AVAILABLE);
-  }
-
-  const claimed = await tripRepo.claimRecipientAcceptance({
-    tripRequestId: requestId,
-    userId: driverUserId,
-  });
-
-  if (!claimed) {
-    throw new Error(TRIP_ERRORS.ALREADY_ACCEPTED);
-  }
-
-  return {
-    request: claimed,
-    candidate: findRecipientByUserId(claimed.recipients, driverUserId),
-    claimedNow: true,
-  };
-};
 
 export const createTripRequest = async ({ body, userId, requestType }) => {
   const data = body?.data;
@@ -277,7 +242,8 @@ export const getDriverCurrentTripDetails = async (userId) => {
 };
 
 export const updateTripStopProgress = async ({ body, userId }) => {
-  const { tripId, stopSequence, status, proofPhotos } = parseStopProgress(body);
+  const { tripId, stopSequence, status, proofPhotos } =
+    parseStopProgress(body);
 
   const recipientId = await tripRepo.findRecipientIdForTripAndUser(
     tripId,

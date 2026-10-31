@@ -5,17 +5,23 @@ import {
   buildTripAssigned,
   buildTripCreated,
   buildTripFulfilled,
+  buildTripEnded,
+  buildTripHandover,
   buildTripRejected,
+  buildTripStarted,
+  buildTripStopsAdded,
   buildTripStopUpdated,
   buildTripUpdated,
 } from "./trip.events.js";
+
+import { LOG_MESSAGES } from "../constants/trip.constants.js";
 
 const publish = async (message) => {
   try {
     await sendMessage(TOPIC_TRIP, message);
   } catch (error) {
     console.warn(
-      `Failed to publish ${message.event} event:`,
+      LOG_MESSAGES.PUBLISH_FAILED(message.event),
       error?.message || error
     );
   }
@@ -36,6 +42,15 @@ export const publishTripFulfilled = (data) => publish(buildTripFulfilled(data));
 export const publishTripStopUpdated = (data) =>
   publish(buildTripStopUpdated(data));
 
+export const publishTripStarted = (data) => publish(buildTripStarted(data));
+
+export const publishTripHandover = (data) => publish(buildTripHandover(data));
+
+export const publishTripStopsAdded = (data) =>
+  publish(buildTripStopsAdded(data));
+
+export const publishTripEnded = (data) => publish(buildTripEnded(data));
+
 export default {
   publishTripCreated,
   publishTripUpdated,
@@ -44,4 +59,8 @@ export default {
   publishTripRejected,
   publishTripFulfilled,
   publishTripStopUpdated,
+  publishTripStarted,
+  publishTripHandover,
+  publishTripStopsAdded,
+  publishTripEnded,
 };

@@ -3,31 +3,7 @@ import {
   TRIP_FAILURES,
   TRIP_RESPONSES,
 } from "../constants/trip.messages.js";
-import {
-  successResponse,
-  errorResponse,
-} from "../../../shared/utils/response.js";
-
-const HTTP_OK = 200;
-const HTTP_SERVER_ERROR = 500;
-
-const handle =
-  (run, { failureMessage, exposeError = false }) =>
-  async (req, res) => {
-    try {
-      const { message, data } = await run(req);
-
-      return successResponse({ res, statusCode: HTTP_OK, message, data });
-    } catch (error) {
-      return errorResponse({
-        res,
-        statusCode: HTTP_SERVER_ERROR,
-        message: exposeError ? error.message || failureMessage : failureMessage,
-      });
-    }
-  };
-
-const withData = (message, data) => ({ message, data });
+import { handleRequest as handle, withData } from "../utils/handleRequest.js";
 
 export const createTripRequest = handle(
   async (req) => {

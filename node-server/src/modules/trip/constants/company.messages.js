@@ -1,0 +1,38 @@
+export const COMPANY_ERRORS = {
+  INVALID_ROUTE_ID: "Invalid route id",
+  INVALID_RUN_ID: "Invalid run id",
+  INVALID_END_REASON: "Invalid end reason",
+  END_REASON_REQUIRED: "A reason is required to end a trip early",
+  INVALID_HANDOVER_TARGET: "Invalid handover driver",
+  HANDOVER_SAME_DRIVER: "Trip is already assigned to this driver",
+  HANDOVER_NOT_ALLOWED: "Not allowed to hand over this trip",
+  HANDOVER_TARGET_NOT_ON_ROUTE: "Driver is not assigned to this route",
+  EXTRA_STOPS_REQUIRED: "At least one extra stop is required",
+  EXTRA_STOPS_LIMIT: "Too many extra stops in one request",
+  EXTRA_STOPS_NOT_ALLOWED: "Not allowed to add stops to this trip",
+  INVALID_STOP_TYPE: "Invalid stop type",
+  RUN_CONFLICT: "Trip changed, please retry",
+  ROUTE_NOT_FOUND: "Company route not found",
+  ROUTE_INACTIVE: "Company route is not active",
+  NOT_ASSIGNED_TO_ROUTE: "Driver and vehicle are not assigned to this route",
+  ROUTE_STOPS_MISSING: "Company route has no stops",
+  DRIVER_HAS_OPEN_TRIP: "Driver already has a running trip",
+  VEHICLE_IN_USE: "Vehicle already has a running trip",
+  RUN_ID_TAKEN: "Run id already used by another driver",
+  RUN_TRIP_NOT_FOUND: "Running trip not found",
+  NOT_ACTIVE_DRIVER: "Only the driver running this trip can do this",
+};
+
+export const COMPANY_RESPONSES = {
+  DRIVER_ROUTES_FETCHED: "Driver routes fetched successfully",
+  RUN_STARTED: "Trip started successfully",
+  RUN_ENDED: "Trip ended successfully",
+  RUN_HANDED_OVER: "Trip handed over successfully",
+  STOPS_ADDED: "Stops added successfully",
+  STOP_UPDATED: "Trip stop updated successfully",
+};
+
+export const COMPANY_FAILURES = {
+  DRIVER_ROUTES: "Failed to get driver routes",
+  ACTION: "Trip action failed",
+};
