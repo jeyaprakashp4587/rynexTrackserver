@@ -1,5 +1,7 @@
 import * as runRepo from "../../repositories/company/company.run.repositories.js";
 import * as tripPublisher from "../../events/trip.publisher.js";
+import { sendMessage } from "../../../../kafka/index.js";
+import { TOPICS } from "../../../../kafka/kafka.config.js";
 import { TERMINAL_STOP_STATUSES } from "../../constants/shared/trip.constants.js";
 import { COMPANY_ROUTE_INACTIVE_STATUSES } from "../../constants/company/company.constants.js";
 import {
@@ -127,6 +129,19 @@ export const startRun = async ({ userId, params, body }) => {
   await tripPublisher.publishTripStarted(
     buildRunStartedData({ trip: runTrip, assignment })
   );
+
+  await sendMessage(TOPICS.COMPANY, {
+    event: "COMPANY_TRIP_STARTED",
+    data: {
+      routeId,
+      tripId: runTrip._id,
+      driverUserId: driverUserId,
+      driverId: assignment.driverId,
+      vehicleId: assignment.vehicleId,
+      startedAt: new Date().toISOString(),
+    },
+    timestamp: new Date().toISOString(),
+  });
 
   return buildStartResult(runTrip);
 };
