@@ -130,19 +130,6 @@ export const startRun = async ({ userId, params, body }) => {
     buildRunStartedData({ trip: runTrip, assignment })
   );
 
-  await sendMessage(TOPICS.COMPANY, {
-    event: "COMPANY_TRIP_STARTED",
-    data: {
-      routeId,
-      tripId: runTrip._id,
-      driverUserId: driverUserId,
-      driverId: assignment.driverId,
-      vehicleId: assignment.vehicleId,
-      startedAt: new Date().toISOString(),
-    },
-    timestamp: new Date().toISOString(),
-  });
-
   return buildStartResult(runTrip);
 };
 

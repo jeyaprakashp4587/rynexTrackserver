@@ -24,23 +24,28 @@ export const handleDriverEvent = async (payload) => {
 
   console.log("Driver Kafka event received:", parsed);
 
-  if (parsed?.event !== "TRIP_ACCEPTED") {
+  const activeTripEvents = new Set(["TRIP_ACCEPTED", "TRIP_STARTED"]);
+
+  if (!activeTripEvents.has(parsed?.event)) {
     return parsed;
   }
 
-  const { driverId } = parsed.data || {};
+  const { driverId, driverUserId, userId } = parsed.data || {};
+  const driverLookup = driverId
+    ? { driverId }
+    : { userId: driverUserId ?? userId };
 
-  if (!driverId) {
+  if (!driverLookup.driverId && !driverLookup.userId) {
     return parsed;
   }
 
   await updateDriverAvailabilityStatus({
-    driverId,
+    ...driverLookup,
     newAvailabilityStatus: DRIVER_AVAILABILITY.UNAVAILABLE,
   });
 
   await updateDriverTripStatus({
-    driverId,
+    ...driverLookup,
     newTripStatus: DRIVER_TRIP_STATUS.ON_TRIP,
   });
 
