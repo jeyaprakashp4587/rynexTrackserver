@@ -52,8 +52,8 @@ const startConsumer = async ({ topic, groupId, handler }) => {
             topic: messageTopic,
             partition,
             offset: message.offset,
-            key: message.key ? message.key.toString() : undefined,
-            value: message.value,
+            key: message.key ? message.key.toString("utf8") : undefined,
+            value: message.value ? message.value.toString("utf8") : undefined,
           });
         } catch (error) {
           console.error(

@@ -8,6 +8,7 @@
     "dev": "nodemon server.js",
     "start": "node server.js",
     "seed": "node src/seeds/vehicleType.seed.js",
+    "feed:driver-status": "node src/seeds/driverStatus.feed.js",
     "worker": "nodemon src/modules/trip/queues/trip.worker.js"
   },
   "keywords": [

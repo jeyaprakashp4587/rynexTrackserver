@@ -17,37 +17,73 @@ export const buildDriverUpdated = (driver) => ({
 });
 
 export const handleDriverEvent = async (payload) => {
-  const parsed =
-    typeof payload?.value === "string"
-      ? JSON.parse(payload.value)
-      : payload?.value || payload;
+  let parsed;
+
+  if (typeof payload?.value === "string") {
+    try {
+      parsed = JSON.parse(payload.value);
+    } catch (error) {
+      console.warn("Invalid Kafka JSON payload:", payload.value);
+      return payload;
+    }
+  } else {
+    parsed = payload?.value || payload;
+  }
 
   console.log("Driver Kafka event received:", parsed);
 
-  const activeTripEvents = new Set(["TRIP_ACCEPTED", "TRIP_STARTED"]);
+  const activeTripEvents = new Set([
+    "TRIP_ACCEPTED",
+    "TRIP_STARTED",
+    "TRIP_HANDOVER",
+  ]);
+  const endedTripEvents = new Set([
+    "TRIP_ENDED",
+    "TRIP_CANCELLED",
+    "TRIP_REJECTED",
+    "TRIP_EXPIRED",
+  ]);
 
-  if (!activeTripEvents.has(parsed?.event)) {
+  if (
+    !activeTripEvents.has(parsed?.event) &&
+    !endedTripEvents.has(parsed?.event)
+  ) {
     return parsed;
   }
 
-  const { driverId, driverUserId, userId } = parsed.data || {};
-  const driverLookup = driverId
+  const data = parsed.data || {};
+  const { driverId, driverUserId, userId, toDriverUserId, activeDriverUserId } =
+    data;
+  const lookup = driverId
     ? { driverId }
-    : { userId: driverUserId ?? userId };
+    : {
+        userId: toDriverUserId ?? driverUserId ?? activeDriverUserId ?? userId,
+      };
 
-  if (!driverLookup.driverId && !driverLookup.userId) {
+  if (!lookup.driverId && !lookup.userId) {
+    console.warn("Driver event ignored: no driverId or userId", parsed);
     return parsed;
   }
 
-  await updateDriverAvailabilityStatus({
-    ...driverLookup,
-    newAvailabilityStatus: DRIVER_AVAILABILITY.UNAVAILABLE,
-  });
-
-  await updateDriverTripStatus({
-    ...driverLookup,
-    newTripStatus: DRIVER_TRIP_STATUS.ON_TRIP,
-  });
+  if (activeTripEvents.has(parsed.event)) {
+    await updateDriverAvailabilityStatus({
+      ...lookup,
+      newAvailabilityStatus: DRIVER_AVAILABILITY.UNAVAILABLE,
+    });
+    await updateDriverTripStatus({
+      ...lookup,
+      newTripStatus: DRIVER_TRIP_STATUS.ON_TRIP,
+    });
+  } else {
+    await updateDriverAvailabilityStatus({
+      ...lookup,
+      newAvailabilityStatus: DRIVER_AVAILABILITY.AVAILABLE,
+    });
+    await updateDriverTripStatus({
+      ...lookup,
+      newTripStatus: DRIVER_TRIP_STATUS.IDLE,
+    });
+  }
 
   return parsed;
 };

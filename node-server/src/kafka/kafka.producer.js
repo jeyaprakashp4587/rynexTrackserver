@@ -1,3 +1,4 @@
+import { Partitioners } from "kafkajs";
 import kafka from "./kafka.client.js";
 import { KAFKA_ENABLED } from "./kafka.config.js";
 
@@ -17,6 +18,7 @@ export const connectProducer = () => {
     const producer = kafka.producer({
       idempotent: true,
       maxInFlightRequests: 1,
+      createPartitioner: Partitioners.LegacyPartitioner,
     });
 
     producerPromise = producer
