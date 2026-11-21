@@ -158,6 +158,12 @@ export const feedExistingVehicles = async () => {
     }
   );
 
+  // 6. Remove obsolete currentlyAvailable field from all vehicles
+  const cleanupRes = await Vehicle.updateMany(
+    { currentlyAvailable: { $exists: true } },
+    { $unset: { currentlyAvailable: "" } }
+  );
+
   console.log(`✅ Vehicle feed summary:`);
   console.log(
     `- Availability & TripStatus: ${statusResult.matchedCount} matched, ${statusResult.modifiedCount} updated`
@@ -173,12 +179,16 @@ export const feedExistingVehicles = async () => {
   console.log(
     `- Location normalized: ${locationRes.modifiedCount} vehicles updated`
   );
+  console.log(
+    `- Obsolete currentlyAvailable cleaned up: ${cleanupRes.modifiedCount} vehicles updated`
+  );
 
   return {
     statusResult,
     driverLinkedCount,
     vehicleTypeCount: matchedTypeCount + fallbackTypeRes.modifiedCount,
     locationCount: locationRes.modifiedCount,
+    cleanupCount: cleanupRes.modifiedCount,
   };
 };
 

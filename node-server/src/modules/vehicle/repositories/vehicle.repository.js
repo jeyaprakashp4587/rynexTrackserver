@@ -52,6 +52,9 @@ export const getCompanyVehicles = async (userId) => {
           vehicleModel: 1,
           pricePerKm: 1,
           vehicleType: 1,
+          currentLocation: 1,
+          availability: 1,
+          tripStatus: 1,
         })
         .lean(),
     3600

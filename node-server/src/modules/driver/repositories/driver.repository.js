@@ -52,6 +52,7 @@ export const findCompanyDrivers = async (userId) => {
           image: 1,
           driverUserId: 1,
           availability: 1,
+          tripStatus: 1,
         })
         .lean(),
     3600

@@ -1,4 +1,8 @@
 import mongoose from "mongoose";
+import {
+  VEHICLE_AVAILABILITY,
+  VEHICLE_TRIP_STATUS,
+} from "../constants/vehicle.constants.js";
 
 export const buildNearbyVehiclesPipeline = ({
   lat,
@@ -18,7 +22,8 @@ export const buildNearbyVehiclesPipeline = ({
         spherical: true,
         maxDistance,
         query: {
-          currentlyAvailable: true,
+          availability: VEHICLE_AVAILABILITY.AVAILABLE,
+          tripStatus: VEHICLE_TRIP_STATUS.IDLE,
         },
       },
     },
@@ -96,6 +101,8 @@ export const buildNearbyVehiclesPipeline = ({
         vehicleNumber: 1,
         vehicleModel: 1,
         vehicleImage: 1,
+        availability: { $ifNull: ["$availability", VEHICLE_AVAILABILITY.AVAILABLE] },
+        tripStatus: { $ifNull: ["$tripStatus", VEHICLE_TRIP_STATUS.IDLE] },
         vehicleType: { $ifNull: ["$vehicleTypeInfo._id", "$vehicleType"] },
         vehicleTypeName: { $ifNull: ["$vehicleTypeInfo.name", null] },
         seatCapacity: { $ifNull: ["$vehicleTypeInfo.seatCapacity", 1] },
@@ -108,6 +115,8 @@ export const buildNearbyVehiclesPipeline = ({
         driverName: { $ifNull: ["$driver.name", null] },
         driverImage: { $ifNull: ["$driver.image", null] },
         driverMobile: { $ifNull: ["$driver.MobileNumber", null] },
+        driverAvailability: { $ifNull: ["$driver.availability", null] },
+        driverTripStatus: { $ifNull: ["$driver.tripStatus", null] },
         isIndependentDriver: {
           $ifNull: ["$driver.isIndependentDriver", false],
         },

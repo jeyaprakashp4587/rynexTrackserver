@@ -49,17 +49,26 @@ const feedExistingDrivers = async () => {
     ]
   );
 
+  const cleanupDrivers = await Driver.updateMany(
+    { currentlyAvailable: { $exists: true } },
+    { $unset: { currentlyAvailable: "" } }
+  );
+
   const matched =
-    companyDrivers.matchedCount +
-    independentDrivers.matchedCount +
-    statusResult.matchedCount;
+    (companyDrivers?.matchedCount || 0) +
+    (independentDrivers?.matchedCount || 0) +
+    (statusResult?.matchedCount || 0) +
+    (cleanupDrivers?.matchedCount || 0);
   const modified =
-    companyDrivers.modifiedCount +
-    independentDrivers.modifiedCount +
-    statusResult.modifiedCount;
+    (companyDrivers?.modifiedCount || 0) +
+    (independentDrivers?.modifiedCount || 0) +
+    (statusResult?.modifiedCount || 0) +
+    (cleanupDrivers?.modifiedCount || 0);
 
   console.log(
-    `✅ Driver feed complete: ${matched} matches, ${modified} documents updated`
+    `✅ Driver feed complete: ${matched} matches, ${modified} documents updated (${
+      cleanupDrivers?.modifiedCount || 0
+    } cleaned up legacy currentlyAvailable)`
   );
 };
 
