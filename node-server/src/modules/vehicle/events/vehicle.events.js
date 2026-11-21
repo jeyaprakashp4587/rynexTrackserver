@@ -24,7 +24,7 @@ export const handleVehicleEvent = async (payload) => {
 
   console.log("Vehicle Kafka event received:", parsed);
 
-  if (parsed?.event !== "TRIP_ACCEPTED") {
+  if (parsed?.event !== "TRIP_STARTED") {
     return parsed;
   }
 
@@ -33,6 +33,8 @@ export const handleVehicleEvent = async (payload) => {
   if (!vehicleId) {
     return parsed;
   }
+  //
+  // console.log("vehilce id", vehicleId);
 
   await updateVehicleAvailabilityStatus({
     vehicleId,
