@@ -13,12 +13,12 @@ const getSubscriptions = () => [
   },
   {
     topic: TOPICS.TRIP,
-    groupId: CONSUMER_GROUPS.DRIVER,
+    groupId: CONSUMER_GROUPS.DRIVER_TRIP,
     handler: driverEvents.handleDriverEvent,
   },
   {
     topic: TOPICS.TRIP,
-    groupId: CONSUMER_GROUPS.VEHICLE,
+    groupId: CONSUMER_GROUPS.VEHICLE_TRIP,
     handler: vehicleEvents.handleVehicleEvent,
   },
   {
@@ -40,7 +40,31 @@ const getSubscriptions = () => [
 
 let consumers = [];
 
+const validateSubscriptions = (subscriptions) => {
+  const groupTopicMap = new Map();
+  for (const { topic, groupId } of subscriptions) {
+    if (!groupId) {
+      throw new Error(
+        `Consumer subscription for topic "${topic}" is missing groupId`
+      );
+    }
+    if (!groupTopicMap.has(groupId)) {
+      groupTopicMap.set(groupId, topic);
+    } else if (groupTopicMap.get(groupId) !== topic) {
+      throw new Error(
+        `Kafka consumer group "${groupId}" is subscribed to multiple topics ("${groupTopicMap.get(
+          groupId
+        )}" and "${topic}"). In Kafka, consumers with different topic subscriptions must use separate consumer group IDs.`
+      );
+    }
+  }
+};
+
 const startConsumer = async ({ topic, groupId, handler }) => {
+  if (!kafka) {
+    throw new Error("Kafka client is not initialized");
+  }
+
   const consumer = kafka.consumer({ groupId });
   try {
     await consumer.connect();
@@ -72,7 +96,11 @@ const startConsumer = async ({ topic, groupId, handler }) => {
 };
 
 export const startAllConsumers = async () => {
+  if (!kafka) return;
+
   const subscriptions = getSubscriptions();
+  validateSubscriptions(subscriptions);
+
   const results = await Promise.allSettled(
     subscriptions.map((subscription) => startConsumer(subscription))
   );
@@ -84,7 +112,7 @@ export const startAllConsumers = async () => {
     }
 
     console.warn(
-      `Failed to start Kafka consumer for ${subscriptions[index].topic}:`,
+      `Failed to start Kafka consumer for ${subscriptions[index].topic} (${subscriptions[index].groupId}):`,
       result.reason?.message || result.reason
     );
   });

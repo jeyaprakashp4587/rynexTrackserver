@@ -49,12 +49,22 @@ export const PARTITIONS = toInt(env.KAFKA_PARTITIONS, 3);
 export const REPLICATION_FACTOR = toInt(env.KAFKA_REPLICATION_FACTOR, 3);
 
 export const TOPICS = Object.fromEntries(
-  Object.entries(DEFAULT_TOPICS).map(([name, topic]) => [name, topic])
-);
-
-export const CONSUMER_GROUPS = Object.fromEntries(
-  Object.keys(DEFAULT_TOPICS).map((name) => [
+  Object.entries(DEFAULT_TOPICS).map(([name, topic]) => [
     name,
-    `${name.toLowerCase()}-consumer-group`,
+    env[`KAFKA_TOPIC_${name}`] || topic,
   ])
 );
+
+export const CONSUMER_GROUPS = {
+  ...Object.fromEntries(
+    Object.keys(DEFAULT_TOPICS).map((name) => [
+      name,
+      env[`KAFKA_CONSUMER_GROUP_${name}`] ||
+        `${name.toLowerCase()}-consumer-group`,
+    ])
+  ),
+  DRIVER_TRIP:
+    env.KAFKA_CONSUMER_GROUP_DRIVER_TRIP || "driver-trip-consumer-group",
+  VEHICLE_TRIP:
+    env.KAFKA_CONSUMER_GROUP_VEHICLE_TRIP || "vehicle-trip-consumer-group",
+};

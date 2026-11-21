@@ -14,7 +14,16 @@ const kafka = KAFKA_ENABLED
   ? new Kafka({ clientId: CLIENT_ID, brokers: BROKERS, ssl: SSL, sasl: SASL })
   : null;
 
+export const requireKafka = () => {
+  if (!kafka) {
+    throw new Error("Kafka is disabled or not initialized");
+  }
+  return kafka;
+};
+
 export const ensureTopics = async () => {
+  if (!kafka) return [];
+
   const admin = kafka.admin();
   await admin.connect();
 

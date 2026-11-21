@@ -99,12 +99,13 @@ Add one line in `DEFAULT_TOPICS` in `kafka.config.js`, for example `SHIPMENT: "s
 | `KAFKA_HANDLER_RETRY_DELAY_MS`                | `500`                     | Doubles each attempt                                                                           |
 | `KAFKA_TOPIC_<DOMAIN>`                        | see config                | `TRIP`, `DRIVER`, `COMPANY`, `PAYMENT`, `FLEET`, `VEHICLE`, `NOTIFICATION`, `INVOICE`, `PROOF` |
 | `KAFKA_PARTITIONS_<DOMAIN>`                   | `3`                       |                                                                                                |
-| `KAFKA_CONSUMER_GROUP_<DOMAIN>`               | `<domain>-consumer-group` |                                                                                                |
+| `KAFKA_CONSUMER_GROUP_<DOMAIN>`               | `<domain>-consumer-group` | E.g. `TRIP`, `DRIVER`, `COMPANY`, `VEHICLE`, `DRIVER_TRIP`, `VEHICLE_TRIP`                    |
 
 All previous variable names and default topic names are unchanged.
 
 ## Behavior changes from the old version
 
+- Distinct consumer groups are used for cross-topic listeners (e.g. `driver-trip-consumer-group` for driver listening to trip events, `vehicle-trip-consumer-group` for vehicle listening to trip events) to prevent partition-assignment conflicts in KafkaJS.
 - `COMPANY` topic now uses `KAFKA_PARTITIONS_COMPANY` (it previously read the `DRIVER` partition setting).
 - `KAFKA_ENABLED` only accepts `true`, `1`, `yes`, `on`. Before, any value other than `false` (including an empty string) enabled it.
 - `publishEvent` returns `null` when Kafka is disabled instead of throwing. It also connects the producer lazily if needed.
