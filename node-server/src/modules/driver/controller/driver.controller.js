@@ -9,6 +9,8 @@ import {
   getCompanyDrivers,
   getDriverProfile,
   onboardDriver,
+  updateDriverActiveTrip as updateDriverActiveTripService,
+  getDriverActiveTrip as getDriverActiveTripService,
 } from "../services/driver.service.js";
 
 export const getDriverDetails = async (req, res) => {
@@ -121,6 +123,51 @@ export const getMyCompanyDrivers = async (req, res) => {
       statusCode: 500,
       res,
       message: error.message || "Failed to fetch drivers",
+    });
+  }
+};
+
+export const updateActiveTrip = async (req, res) => {
+  try {
+    const { activeTripId, activeTripType, driverId, tripStatus, availability } =
+      req.body;
+    const updated = await updateDriverActiveTripService({
+      userId: req.userId,
+      driverId,
+      activeTripId,
+      activeTripType,
+      newTripStatus: tripStatus,
+      newAvailabilityStatus: availability,
+    });
+    return successResponse({
+      res,
+      statusCode: 200,
+      message: "Active trip updated successfully",
+      data: updated,
+    });
+  } catch (error) {
+    return errorResponse({
+      statusCode: 500,
+      res,
+      message: error.message || "Failed to update active trip",
+    });
+  }
+};
+
+export const getActiveTrip = async (req, res) => {
+  try {
+    const activeTrip = await getDriverActiveTripService(req.userId);
+    return successResponse({
+      res,
+      statusCode: 200,
+      message: "Active trip fetched successfully",
+      data: activeTrip,
+    });
+  } catch (error) {
+    return errorResponse({
+      statusCode: 500,
+      res,
+      message: error.message || "Failed to fetch active trip",
     });
   }
 };

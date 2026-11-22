@@ -1,3 +1,5 @@
+import { TRIP_TYPE } from "../constants/shared/trip.constants.js";
+
 export const buildRunStartedData = ({ trip, assignment }) => ({
   tripId: trip._id,
   companyRouteId: trip.companyRouteId,
@@ -5,6 +7,7 @@ export const buildRunStartedData = ({ trip, assignment }) => ({
   driverUserId: assignment.userId,
   driverId: assignment.driverId,
   vehicleId: assignment.vehicleId,
+  tripType: TRIP_TYPE.COMPANY,
   startedAt: trip.startedAt.toISOString(),
 });
 

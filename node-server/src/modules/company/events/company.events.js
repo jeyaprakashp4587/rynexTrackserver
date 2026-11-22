@@ -5,7 +5,9 @@ import {
 import {
   changeAvailabilityStatus as updateDriverAvailabilityStatus,
   changeTripStatus as updateDriverTripStatus,
+  updateDriverActiveTrip,
 } from "../../driver/services/driver.service.js";
+import { TRIP_TYPE } from "../../trip/constants/shared/trip.constants.js";
 
 export const TOPIC_COMPANY_UPDATED = "company.updated";
 
@@ -45,22 +47,20 @@ export const handleCompanyEvent = async (payload) => {
     return parsed;
   }
 
-  const { driverId, driverUserId } = parsed.data || {};
+  const { driverId, driverUserId, tripId } = parsed.data || {};
   if (!driverId && !driverUserId) {
     return parsed;
   }
 
-  if (driverId) {
-    await updateDriverAvailabilityStatus({
-      driverId,
-      newAvailabilityStatus: DRIVER_AVAILABILITY.UNAVAILABLE,
-    });
+  const lookup = driverId ? { driverId } : { userId: driverUserId };
 
-    await updateDriverTripStatus({
-      driverId,
-      newTripStatus: DRIVER_TRIP_STATUS.ON_TRIP,
-    });
-  }
+  await updateDriverActiveTrip({
+    ...lookup,
+    activeTripId: tripId || null,
+    activeTripType: TRIP_TYPE.COMPANY,
+    newAvailabilityStatus: DRIVER_AVAILABILITY.UNAVAILABLE,
+    newTripStatus: DRIVER_TRIP_STATUS.ON_TRIP,
+  });
 
   return parsed;
 };

@@ -6,7 +6,9 @@ import {
 import {
   changeAvailabilityStatus as updateDriverAvailabilityStatus,
   changeTripStatus as updateDriverTripStatus,
+  updateDriverActiveTrip,
 } from "../services/driver.service.js";
+import { TRIP_TYPE } from "../../trip/constants/shared/trip.constants.js";
 
 export const TOPIC_DRIVER_UPDATED = TOPICS.DRIVER;
 
@@ -36,6 +38,7 @@ export const handleDriverEvent = async (payload) => {
     "TRIP_ACCEPTED",
     "TRIP_STARTED",
     "TRIP_HANDOVER",
+    "COMPANY_TRIP_STARTED",
   ]);
   const endedTripEvents = new Set([
     "TRIP_ENDED",
@@ -66,21 +69,28 @@ export const handleDriverEvent = async (payload) => {
   }
 
   if (activeTripEvents.has(parsed.event)) {
-    await updateDriverAvailabilityStatus({
+    const activeTripId = data.tripId || data._id || data.runId || null;
+    const isCompany = Boolean(
+      data.companyRouteId ||
+        parsed.event === "COMPANY_TRIP_STARTED" ||
+        data.tripType === TRIP_TYPE.COMPANY
+    );
+    const activeTripType =
+      data.tripType || (isCompany ? TRIP_TYPE.COMPANY : TRIP_TYPE.INDEPENDENT);
+
+    await updateDriverActiveTrip({
       ...lookup,
+      activeTripId,
+      activeTripType,
       newAvailabilityStatus: DRIVER_AVAILABILITY.UNAVAILABLE,
-    });
-    await updateDriverTripStatus({
-      ...lookup,
       newTripStatus: DRIVER_TRIP_STATUS.ON_TRIP,
     });
   } else {
-    await updateDriverAvailabilityStatus({
+    await updateDriverActiveTrip({
       ...lookup,
+      activeTripId: null,
+      activeTripType: null,
       newAvailabilityStatus: DRIVER_AVAILABILITY.AVAILABLE,
-    });
-    await updateDriverTripStatus({
-      ...lookup,
       newTripStatus: DRIVER_TRIP_STATUS.IDLE,
     });
   }

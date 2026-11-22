@@ -123,5 +123,49 @@ export const changeTripStatus = async ({ userId, driverId, newTripStatus }) => {
     throw new Error("Failed to update trip status");
   }
 
+  if (update.driverUserId) {
+    await redisService.del(driverCacheKeys.DRIVER.BY_USER_ID(update.driverUserId)).catch(() => {});
+  }
+  if (update._id) {
+    await redisService.del(driverCacheKeys.DRIVER.BY_ID(update._id)).catch(() => {});
+  }
+
+  return update;
+};
+
+export const updateDriverActiveTrip = async ({
+  userId,
+  driverId,
+  activeTripId = null,
+  activeTripType = null,
+  tripStatus = null,
+  availability = null,
+}) => {
+  const query = driverId ? { _id: driverId } : { driverUserId: userId };
+  const updateData = {
+    activeTrip: {
+      activeTripId: activeTripId || null,
+      activeTripType: activeTripId ? (activeTripType || null) : null,
+    },
+  };
+
+  if (tripStatus) {
+    updateData.tripStatus = tripStatus;
+  }
+  if (availability) {
+    updateData.availability = availability;
+  }
+
+  const update = await Driver.findOneAndUpdate(query, updateData, { new: true });
+
+  if (update) {
+    if (update.driverUserId) {
+      await redisService.del(driverCacheKeys.DRIVER.BY_USER_ID(update.driverUserId)).catch(() => {});
+    }
+    if (update._id) {
+      await redisService.del(driverCacheKeys.DRIVER.BY_ID(update._id)).catch(() => {});
+    }
+  }
+
   return update;
 };
