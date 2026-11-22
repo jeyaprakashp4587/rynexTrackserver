@@ -1,8 +1,10 @@
+pub mod auth_config;
 pub mod redis_config;
 pub mod socket_config;
 
 use std::env;
 
+pub use auth_config::AuthConfig;
 pub use redis_config::RedisConfig;
 pub use socket_config::SocketConfig;
 
@@ -12,6 +14,7 @@ pub struct Settings {
     pub port: u16,
     pub redis: RedisConfig,
     pub socket: SocketConfig,
+    pub auth: AuthConfig,
 }
 
 impl Settings {
@@ -24,6 +27,7 @@ impl Settings {
                 .unwrap_or(8080),
             redis: RedisConfig::from_env(),
             socket: SocketConfig::from_env(),
+            auth: AuthConfig::from_env(),
         }
     }
 }

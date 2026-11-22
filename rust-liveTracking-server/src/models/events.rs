@@ -2,6 +2,7 @@ use serde::{Deserialize, Serialize};
 
 use super::location::LocationUpdate;
 
+#[allow(dead_code)]
 #[derive(Debug, Serialize)]
 #[serde(tag = "event", content = "data", rename_all = "camelCase")]
 pub enum ServerEvent<'a> {
@@ -21,6 +22,15 @@ pub enum ServerEvent<'a> {
     Error {
         message: &'a str,
     },
+    #[serde(rename = "error")]
+    ErrorWithCode {
+        code: &'a str,
+        message: &'a str,
+    },
+    AuthError {
+        code: &'a str,
+        message: &'a str,
+    },
 }
 
 impl ServerEvent<'_> {
@@ -30,8 +40,27 @@ impl ServerEvent<'_> {
 }
 
 #[derive(Debug, Deserialize)]
-#[serde(tag = "type", rename_all = "camelCase")]
+pub struct AuthPayload {
+    pub token: String,
+}
+
+#[derive(Debug, Deserialize)]
+#[serde(untagged)]
 pub enum ClientMessage {
+    AuthEnvelope {
+        auth: AuthPayload,
+    },
+    Typed(TypedClientMessage),
+}
+
+#[allow(dead_code)]
+#[derive(Debug, Deserialize)]
+#[serde(tag = "type", rename_all = "camelCase")]
+pub enum TypedClientMessage {
+    #[serde(rename = "auth", alias = "authenticate")]
+    Auth {
+        token: String,
+    },
     JoinTrip {
         #[serde(rename = "tripId")]
         trip_id: String,
@@ -59,4 +88,6 @@ pub enum ClientMessage {
         #[serde(default, alias = "dateTime", alias = "datetime")]
         time: Option<String>,
     },
+    #[serde(rename = "ping")]
+    Ping,
 }
