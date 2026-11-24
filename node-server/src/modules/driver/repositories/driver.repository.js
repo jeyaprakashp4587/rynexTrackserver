@@ -2,6 +2,8 @@ import { Company } from "../../company/models/company.model.js";
 import { Driver } from "../models/driver.model.js";
 import { companyCache } from "../../company/cache/company.cache.js";
 import { driverCache } from "../cache/driver.cache.js";
+import { driverCacheKeys } from "../cache/cacheKeys.js";
+import { redisService } from "../../../Redis/redis.service.js";
 import {
   DRIVER_AVAILABILITY,
   DRIVER_AVAILABILITY_VALUES,

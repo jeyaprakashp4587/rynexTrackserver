@@ -13,12 +13,17 @@ import {
   DRIVER_AVAILABILITY,
   DRIVER_TRIP_STATUS,
 } from "../constants/driver.constants.js";
-import { TRIP_TYPE } from "../../trip/constants/shared/trip.constants.js";
+import { TRIP_TYPE, TRIP_STATUS } from "../../trip/constants/shared/trip.constants.js";
 import * as companyRunService from "../../trip/services/company/company.run.services.js";
 import * as tripService from "../../trip/services/generic/trip.services.js";
 import { companyRoutes } from "../../trip/models/company/companyRoute.model.js";
 import { companyRun } from "../../trip/models/company/companyRun.model.js";
+import { companyRunStops } from "../../trip/models/company/companyRunStops.model.js";
+import { trip as genericTripModel } from "../../trip/models/generic/trip.model.js";
 import { Vehicle } from "../../vehicle/models/vehicle.model.js";
+import { Driver } from "../models/driver.model.js";
+import { redisService } from "../../../Redis/redis.service.js";
+import { driverCacheKeys } from "../cache/cacheKeys.js";
 
 const normalizeTripType = (type) => {
   if (!type) return null;
@@ -77,127 +82,193 @@ export const updateDriverActiveTrip = async ({
 };
 
 export const getDriverActiveTrip = async (userId) => {
-  const driver = await findDriverByUserId(userId);
+  const driver = await Driver.findOne({ driverUserId: userId }).lean();
   if (!driver) {
     throw new Error("Driver not found");
   }
 
-  let activeTripId = driver.activeTrip?.activeTripId;
-  let activeTripType = driver.activeTrip?.activeTripType;
+  const RUNNING_STATUSES = [
+    TRIP_STATUS.ACCEPTED,
+    TRIP_STATUS.STARTED,
+    "STARTED",
+    "ACCEPTED",
+    "IN_PROGRESS",
+  ];
 
-  // Self-heal/fallback: if activeTripId is missing but status is ON_TRIP
-  if (!activeTripId && driver.tripStatus === DRIVER_TRIP_STATUS.ON_TRIP) {
-    const openRun = await companyRun
-      .findOne({ activeDriverUserId: userId, isTripEnded: false })
-      .lean();
-    if (openRun) {
-      activeTripId = openRun._id;
-      activeTripType = TRIP_TYPE.COMPANY;
+  // 1. Check for active company run with started / accepted status and not ended (driver only)
+  const activeCompanyRun = await companyRun
+    .findOne({
+      $or: [
+        { activeDriverUserId: userId },
+        ...(driver.activeTrip?.activeTripId
+          ? [
+              {
+                _id: driver.activeTrip.activeTripId,
+                activeDriverUserId: userId,
+              },
+            ]
+          : []),
+      ],
+      isTripEnded: false,
+      status: { $in: RUNNING_STATUSES },
+    })
+    .lean();
+
+  if (activeCompanyRun) {
+    const route = activeCompanyRun.companyRouteId
+      ? await companyRoutes
+          .findById(activeCompanyRun.companyRouteId)
+          .lean()
+          .catch(() => null)
+      : null;
+    const vehicle = activeCompanyRun.activeVehicleId
+      ? await Vehicle.findById(activeCompanyRun.activeVehicleId)
+          .lean()
+          .catch(() => null)
+      : null;
+    const runStops = await companyRunStops
+      .findOne({ runId: activeCompanyRun._id })
+      .lean()
+      .catch(() => null);
+
+    const companyTripDto = {
+      _id: String(activeCompanyRun._id),
+      routeId: String(activeCompanyRun.companyRouteId || ""),
+      routeName: route?.name || route?.title || "Company Trip",
+      title: route?.name || route?.title || "Company Trip",
+      name: route?.name || route?.title || "Company Trip",
+      status: activeCompanyRun.status || TRIP_STATUS.ACCEPTED,
+      tripType: TRIP_TYPE.COMPANY,
+      type: TRIP_TYPE.COMPANY,
+      driverId: String(driver._id),
+      vehicleId: String(activeCompanyRun.activeVehicleId || ""),
+      vehicle: vehicle
+        ? {
+            _id: String(vehicle._id),
+            vehicleNumber: vehicle.vehicleNumber,
+            vehicleModel: vehicle.vehicleModel,
+          }
+        : null,
+      stops: (runStops?.stops || []).map((s) => ({
+        locationName: s.locationName || s.name,
+        name: s.locationName || s.name,
+        stopType: s.stopType,
+        sequence: s.sequence,
+      })),
+    };
+
+    if (
+      String(driver.activeTrip?.activeTripId) !==
+        String(activeCompanyRun._id) ||
+      driver.tripStatus !== DRIVER_TRIP_STATUS.ON_TRIP
+    ) {
       await repoUpdateDriverActiveTrip({
         userId,
-        activeTripId,
-        activeTripType,
+        driverId: driver._id,
+        activeTripId: activeCompanyRun._id,
+        activeTripType: TRIP_TYPE.COMPANY,
         tripStatus: DRIVER_TRIP_STATUS.ON_TRIP,
+        availability: DRIVER_AVAILABILITY.UNAVAILABLE,
       });
-    } else {
-      const genericTrips = await tripService
-        .getDriverCurrentTripDetails(userId)
-        .catch(() => null);
-      if (genericTrips?.trip?.length) {
-        activeTripId = genericTrips.trip[0]._id;
-        activeTripType = TRIP_TYPE.INDEPENDENT;
-        await repoUpdateDriverActiveTrip({
-          userId,
-          activeTripId,
-          activeTripType,
-          tripStatus: DRIVER_TRIP_STATUS.ON_TRIP,
-        });
-      }
-    }
-  }
-
-  if (!activeTripId) {
-    return {
-      isTripActive: false,
-      activeTripId: null,
-      activeTripType: null,
-      driverId: driver._id,
-      tripStatus: driver.tripStatus,
-      companyTrip: null,
-      genericTrip: null,
-    };
-  }
-
-  const isCompany =
-    activeTripType === TRIP_TYPE.COMPANY ||
-    String(activeTripType).toUpperCase() === "COMPANY";
-
-  if (isCompany) {
-    const runDetails = await companyRunService
-      .getDriverCurrentRun(userId)
-      .catch(() => null);
-    let companyTripDto = null;
-
-    if (runDetails?.trip) {
-      const runTrip = runDetails.trip;
-      const route = runTrip.companyRouteId
-        ? await companyRoutes.findById(runTrip.companyRouteId).lean().catch(() => null)
-        : null;
-      const vehicle = runTrip.vehicleId
-        ? await Vehicle.findById(runTrip.vehicleId).lean().catch(() => null)
-        : null;
-
-      companyTripDto = {
-        _id: String(runTrip.tripId || activeTripId),
-        routeId: String(runTrip.companyRouteId || ""),
-        routeName: route?.name || route?.title || "Company Trip",
-        title: route?.name || route?.title || "Company Trip",
-        name: route?.name || route?.title || "Company Trip",
-        status: runTrip.status || "ACCEPTED",
-        tripType: TRIP_TYPE.COMPANY,
-        type: TRIP_TYPE.COMPANY,
-        driverId: String(driver._id),
-        vehicleId: String(runTrip.vehicleId || ""),
-        vehicle: vehicle
-          ? {
-              _id: String(vehicle._id),
-              vehicleNumber: vehicle.vehicleNumber,
-              vehicleModel: vehicle.vehicleModel,
-            }
-          : null,
-        stops: (runDetails.tripStop?.stops || []).map((s) => ({
-          locationName: s.locationName || s.name,
-          name: s.locationName || s.name,
-          stopType: s.stopType,
-          sequence: s.sequence,
-        })),
-      };
     }
 
     return {
       isTripActive: true,
-      activeTripId: String(activeTripId),
+      activeTripId: String(activeCompanyRun._id),
       activeTripType: TRIP_TYPE.COMPANY,
       driverId: driver._id,
-      tripStatus: driver.tripStatus,
+      vehicleId: String(activeCompanyRun.activeVehicleId || ""),
+      tripStatus: DRIVER_TRIP_STATUS.ON_TRIP,
       companyTrip: companyTripDto,
       genericTrip: null,
     };
-  } else {
-    const genericDetails = await tripService
-      .getDriverCurrentTripDetails(userId)
-      .catch(() => null);
+  }
+
+  // 2. Check for active generic trip with started / accepted status and not ended (driver only)
+  const activeGenericTrip = await genericTripModel
+    .findOne({
+      $or: [
+        { "recipients.userId": userId },
+        ...(driver.activeTrip?.activeTripId
+          ? [
+              {
+                _id: driver.activeTrip.activeTripId,
+                "recipients.userId": userId,
+              },
+            ]
+          : []),
+      ],
+      isTripEnded: { $ne: true },
+      status: { $in: RUNNING_STATUSES },
+      recipients: {
+        $elemMatch: {
+          userId,
+          status: { $in: RUNNING_STATUSES },
+        },
+      },
+    })
+    .lean();
+
+  if (activeGenericTrip) {
+    if (
+      String(driver.activeTrip?.activeTripId) !==
+        String(activeGenericTrip._id) ||
+      driver.tripStatus !== DRIVER_TRIP_STATUS.ON_TRIP
+    ) {
+      await repoUpdateDriverActiveTrip({
+        userId,
+        driverId: driver._id,
+        activeTripId: activeGenericTrip._id,
+        activeTripType: TRIP_TYPE.INDEPENDENT,
+        tripStatus: DRIVER_TRIP_STATUS.ON_TRIP,
+        availability: DRIVER_AVAILABILITY.UNAVAILABLE,
+      });
+    }
 
     return {
       isTripActive: true,
-      activeTripId: String(activeTripId),
+      activeTripId: String(activeGenericTrip._id),
       activeTripType: TRIP_TYPE.INDEPENDENT,
       driverId: driver._id,
-      tripStatus: driver.tripStatus,
+      vehicleId: null,
+      tripStatus: DRIVER_TRIP_STATUS.ON_TRIP,
       companyTrip: null,
-      genericTrip: genericDetails,
+      genericTrip: activeGenericTrip,
     };
   }
+
+  // 3. Neither company run nor generic trip is active in DB!
+  // Self-heal stale driver document and Redis cache if needed
+  if (
+    driver.activeTrip?.activeTripId ||
+    driver.tripStatus === DRIVER_TRIP_STATUS.ON_TRIP
+  ) {
+    await repoUpdateDriverActiveTrip({
+      userId,
+      driverId: driver._id,
+      activeTripId: null,
+      activeTripType: null,
+      tripStatus: DRIVER_TRIP_STATUS.IDLE,
+      availability: DRIVER_AVAILABILITY.AVAILABLE,
+    });
+    await redisService
+      .del(driverCacheKeys.DRIVER.BY_USER_ID(userId))
+      .catch(() => {});
+    await redisService
+      .del(driverCacheKeys.DRIVER.BY_ID(driver._id))
+      .catch(() => {});
+  }
+
+  return {
+    isTripActive: false,
+    activeTripId: null,
+    activeTripType: null,
+    driverId: driver._id,
+    vehicleId: null,
+    tripStatus: DRIVER_TRIP_STATUS.IDLE,
+    companyTrip: null,
+    genericTrip: null,
+  };
 };
 
 export const createCompanyDriver = async ({ companyId, driverForm }) => {
