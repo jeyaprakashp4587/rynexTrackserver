@@ -12,7 +12,25 @@ export const createCompanyRoute = async (payload) => {
   const [created] = await companyRoutes.create([payload]);
   return created;
 };
+export const updateReceipientStatus = async (payload) => {
+  const { routeId, userId, recipientId, status } = payload;
 
+  const updated = await companyRoutes.findOneAndUpdate(
+    {
+      _id: routeId,
+      "recipients.userId": recipientId,
+      createdBy: userId,
+    },
+    {
+      $set: {
+        "recipients.$.status": status,
+      },
+    },
+    { new: true }
+  );
+
+  return updated;
+};
 export const createRouteStops = async (payload) =>
   companyRouteStops.create([payload]);
 

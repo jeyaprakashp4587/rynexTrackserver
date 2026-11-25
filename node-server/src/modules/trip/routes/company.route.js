@@ -21,6 +21,11 @@ const router = Router();
 router.post("/company/routes", verifyToken, createCompanyTrip);
 router.get("/company/routes", verifyToken, listCompanyRoutes);
 router.get("/company/active", verifyToken, listCompanyActiveTrips);
+router.put(
+  "/company/routes/:routeId/updateReceipientStatus",
+  verifyToken,
+  updateReceipientStatus
+);
 router.get("/company/driver/routes", verifyToken, listDriverCompanyRoutes);
 router.get("/company/driver/current", verifyToken, getDriverCurrentCompanyRun);
 router.post("/company/routes/:routeId/runs", verifyToken, startCompanyRun);

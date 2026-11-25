@@ -3,7 +3,10 @@ import {
   COMPANY_FAILURES,
   COMPANY_RESPONSES,
 } from "../../constants/company/company.messages.js";
-import { handleRequest as handle, withData } from "../../utils/shared/handleRequest.js";
+import {
+  handleRequest as handle,
+  withData,
+} from "../../utils/shared/handleRequest.js";
 
 export const createCompanyTrip = handle(
   async (req) =>
@@ -16,7 +19,17 @@ export const createCompanyTrip = handle(
     ),
   { failureMessage: COMPANY_FAILURES.CREATE_ROUTE, exposeError: true }
 );
-
+export const updateReceipientStatus = handle(
+  async (req) =>
+    withData(
+      COMPANY_RESPONSES.ROUTE_UPDATED,
+      await companyRouteService.updateReceipientStatus({
+        userId: req.userId,
+        routeId: req.params.routeId,
+      })
+    ),
+  { failureMessage: COMPANY_FAILURES.UPDATE_ROUTE, exposeError: true }
+);
 export const listCompanyActiveTrips = handle(
   async (req) =>
     withData(
@@ -39,7 +52,10 @@ export const getCompanyTripDetails = handle(
   async (req) =>
     withData(
       COMPANY_RESPONSES.FETCHED_ONE,
-      await companyRouteService.getCompanyTripDetails(req.params.tripId, req.userId)
+      await companyRouteService.getCompanyTripDetails(
+        req.params.tripId,
+        req.userId
+      )
     ),
   { failureMessage: COMPANY_FAILURES.GET_ONE }
 );

@@ -35,6 +35,8 @@ export const COMPANY_RESPONSES = {
   ROUTES_FETCHED: "Company routes fetched successfully",
   FETCHED: "Trips fetched successfully",
   FETCHED_ONE: "Trip fetched successfully",
+  ROUTE_UPDATED: "Company trip updated successfully",
+  UPDATE_ROUTE: "Failed to update company trip",
 };
 
 export const COMPANY_FAILURES = {
