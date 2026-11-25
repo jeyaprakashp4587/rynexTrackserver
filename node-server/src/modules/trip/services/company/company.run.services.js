@@ -2,7 +2,10 @@ import * as runRepo from "../../repositories/company/company.run.repositories.js
 import * as tripPublisher from "../../events/trip.publisher.js";
 import { sendMessage } from "../../../../kafka/index.js";
 import { TOPICS } from "../../../../kafka/kafka.config.js";
-import { TERMINAL_STOP_STATUSES } from "../../constants/shared/trip.constants.js";
+import {
+  TERMINAL_STOP_STATUSES,
+  TRIP_STATUS,
+} from "../../constants/shared/trip.constants.js";
 import { COMPANY_ROUTE_INACTIVE_STATUSES } from "../../constants/company/company.constants.js";
 import {
   COMPANY_ERRORS,
@@ -125,7 +128,12 @@ export const startRun = async ({ userId, params, body }) => {
     runId: runTrip._id,
     stops: buildRunStops(template.stops, assignment._id),
   });
-
+  // update the trip status to started
+  await runRepo.updateReceipientStatus({
+    routeId: route._id,
+    recipientId: standing.userId,
+    status: TRIP_STATUS.ACCEPTED,
+  });
   await tripPublisher.publishTripStarted(
     buildRunStartedData({ trip: runTrip, assignment })
   );

@@ -47,15 +47,16 @@ export const createCompanyTrip = async ({ body, userId }) => {
 
   return companyTrip;
 };
+
 export const updateReceipientStatus = async ({ userId, routeId }) => {
   const updatedTrip = await companyRouteRepo.updateReceipientStatus({
     routeId: requireTripId(routeId),
     recipientId: requireUserId(userId),
     status: TRIP_STATUS.ACCEPTED,
   });
-
   return updatedTrip;
 };
+
 export const getCompanyTripDetails = async (tripId, userId) => {
   const trip = await companyRouteRepo.getRunDetails(
     requireTripId(tripId),
